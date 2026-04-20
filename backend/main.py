@@ -2,6 +2,7 @@ import webview
 import os
 import shutil
 from backend.bridge import Bridge
+from backend.database import Database
 
 def check_ffmpeg():
     if not shutil.which('ffmpeg'):
@@ -11,6 +12,9 @@ def check_ffmpeg():
 
 def main():
     check_ffmpeg()
+
+    # Ensure DB is initialized before starting
+    Database().init_db()
 
     bridge = Bridge()
 

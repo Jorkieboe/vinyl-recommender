@@ -15,17 +15,17 @@
 
 **Goal:** Ingest user streaming data and perform Librosa analysis to establish the "Taste Centroid."
 
-- [ ] **SQLite Schema:**
-  - [ ] `user_preferences`: Store "Sonic DNA" vectors (Librosa features) for each liked track.
-  - [ ] `scanned_albums`: Cache results for album scores, track-by-track similarity, and metadata.
-  - [ ] `physical_shelf`: Store user-confirmed purchases.
-- [ ] **Deezer API Client:** Implement a Python module using `Requests` to fetch a user's "Loved Tracks" (metadata + preview URLs).
-- [ ] **Initial Profiling (Librosa):**
-  - [ ] Implement a background loop to download previews for all "Loved Tracks."
-  - [ ] Use `librosa` to extract MFCCs, Chroma, and spectral features for each track.
-  - [ ] Save these feature vectors into the `user_preferences` table to define the user's permanent "Taste Centroid."
-- [ ] **Testing Point 2: Data Ingestion & Analysis**
-  - [ ] Verify that Librosa features are correctly calculated and stored for the initial batch of favorite tracks.
+- [x] **SQLite Schema:**
+  - [x] `user_preferences`: Store "Sonic DNA" vectors (Librosa features) for each liked track.
+  - [x] `scanned_albums`: Cache results for album scores, track-by-track similarity, and metadata.
+  - [x] `physical_shelf`: Store user-confirmed purchases.
+- [x] **Deezer API Client:** Implement a Python module using `Requests` to fetch a user's "Loved Tracks" (metadata + preview URLs).
+- [x] **Initial Profiling (Librosa):**
+  - [x] Implement a background loop to download previews for all "Loved Tracks."
+  - [x] Use `librosa` to extract MFCCs, Chroma, and spectral features for each track.
+  - [x] Save these feature vectors into the `user_preferences` table to define the user's permanent "Taste Centroid."
+- [x] **Testing Point 2: Data Ingestion & Analysis**
+  - [x] Verify that Librosa features are correctly calculated and stored for the initial batch of favorite tracks.
 
 ## LLM Decision Layer & Insights
 
