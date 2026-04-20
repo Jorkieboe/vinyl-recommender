@@ -20,14 +20,23 @@ class DeezerClient:
             return []
 
     def get_track(self, track_id):
-        """Fetches the 'Loved Tracks' for a specific user ID"""
+        """Fetches track metadata"""
         try:
-            print(track_id)
             response = requests.get(f"{self.BASE_URL}/track/{track_id}")
             response.raise_for_status()
             return response.json()
         except Exception as e:
             print(f"Error fetching track: {e}")
+            return None
+
+    def get_album_tracks(self, album_id):
+        """Fetches all tracks for a specific album"""
+        try:
+            response = requests.get(f"{self.BASE_URL}/album/{album_id}/tracks")
+            response.raise_for_status()
+            return response.json().get('data', [])
+        except Exception as e:
+            print(f"Error fetching album tracks: {e}")
             return []
 
     def download_preview(self, url, track_id):

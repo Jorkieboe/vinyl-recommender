@@ -31,12 +31,12 @@
 
 **Goal:** Use OpenAI to translate Librosa similarity math into human-readable "Purchase Confidence."
 
-- [ ] **Audio Logic Gate:** Implement the function to fetch all tracks of a target album and run Librosa analysis on each, comparing them against the stored `user_preferences`.
-- [ ] **OpenAI SDK Integration:** Configure the `OpenAI` client to interpret the resulting similarity data. We put in the base url in the env file to switch between local and api
-- [ ] **Sonic Breakdown Prompt:** Design a prompt that takes the numerical similarity scores and metadata to generate a "Sonic Breakdown" (e.g., "This album matches your preference for high-energy rhythm but includes one experimental ambient track").
-- [ ] **Confidence Score Calculation:** Build the logic gate that aggregates track-to-centroid scores into a final 0–100% percentage.
-- [ ] **Testing Point 4: Confidence Logic**
-  - [ ] Verify the LLM correctly identifies "Outliers" (Filler tracks) based on the audio math provided to it.
+- [x] **Audio Logic Gate:** Implement the function to fetch all tracks of a target album and run Librosa analysis on each, comparing them against the stored `user_preferences`.
+- [x] **OpenAI SDK Integration:** Configure the `OpenAI` client to interpret the resulting similarity data. We put in the base url in the env file to switch between local and api
+- [x] **Sonic Breakdown Prompt:** Design a prompt that takes the numerical similarity scores and metadata to generate a "Sonic Breakdown" (e.g., "This album matches your preference for high-energy rhythm but includes one experimental ambient track").
+- [x] **Confidence Score Calculation:** Build the logic gate that aggregates track-to-centroid scores into a final 0–100% percentage.
+- [x] **Testing Point 4: Confidence Logic**
+  - [x] Verify the LLM correctly identifies "Outliers" (Filler tracks) based on the audio math provided to it.
 
 ## Marketplace Acquisition Scraper
 

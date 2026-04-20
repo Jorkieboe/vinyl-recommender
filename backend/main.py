@@ -1,6 +1,7 @@
 import webview
 import os
 import shutil
+from dotenv import load_dotenv
 from backend.bridge import Bridge
 from backend.database import Database
 
@@ -11,6 +12,9 @@ def check_ffmpeg():
     return True
 
 def main():
+    # Load environment variables from .env
+    load_dotenv()
+
     check_ffmpeg()
 
     # Ensure DB is initialized before starting

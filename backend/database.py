@@ -82,3 +82,28 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT features_json FROM user_preferences')
             return [json.loads(row[0]) for row in cursor.fetchall()]
+
+    def save_scanned_album(self, album_id, title, artist, confidence_score, analysis_json):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO scanned_albums
+                (album_id, title, artist, confidence_score, analysis_json)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (album_id, title, artist, confidence_score, json.dumps(analysis_json)))
+            conn.commit()
+
+    def get_scanned_album(self, album_id):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM scanned_albums WHERE album_id = ?', (album_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "album_id": row[0],
+                    "title": row[1],
+                    "artist": row[2],
+                    "confidence_score": row[3],
+                    "analysis_json": json.loads(row[4])
+                }
+            return None
