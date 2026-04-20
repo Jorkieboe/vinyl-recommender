@@ -1,0 +1,6 @@
+pywebview
+playwright
+librosa
+numpy
+openai
+requests

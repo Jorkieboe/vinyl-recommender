@@ -1,0 +1,145 @@
+{
+  "_info": "For information about this file, see: https://github.com/DrSiemer/CodeMerger/",
+  "project_name": "vinyl-recommender",
+  "project_color": "#E67E22",
+  "project_font_color": "light",
+  "active_profile": "Default",
+  "profiles": {
+    "Default": {
+      "selected_files": [
+        {
+          "path": "README.md"
+        },
+        {
+          "path": "go.bat"
+        },
+        {
+          "path": "llm.md"
+        },
+        {
+          "path": "release.bat"
+        },
+        {
+          "path": "version.txt"
+        },
+        {
+          "path": "requirements.txt"
+        },
+        {
+          "path": "concept.md"
+        },
+        {
+          "path": "todo.md",
+          "tokens": 1365,
+          "lines": 78,
+          "mtime": 1776686920.8179436,
+          "hash": "0825533707ecc7c8a7bbe522186d11d1b13b84fe"
+        },
+        {
+          "path": "backend/__init__.py",
+          "tokens": 0,
+          "lines": 1,
+          "mtime": 1776686920.8494577,
+          "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        },
+        {
+          "path": "backend/bridge.py",
+          "tokens": 128,
+          "lines": 15,
+          "mtime": 1776686920.8631096,
+          "hash": "7621fadcd6e68a18dbdc4acce001cf28c30ef894"
+        },
+        {
+          "path": "backend/main.py",
+          "tokens": 283,
+          "lines": 44,
+          "mtime": 1776686920.8933597,
+          "hash": "8a271a0d57fd19d047b2ebc66a650cf58af84933"
+        },
+        {
+          "path": "frontend/index.html",
+          "tokens": 94,
+          "lines": 12,
+          "mtime": 1776686920.924847,
+          "hash": "631dc44bf6f22ada21711aa345bc20c48376b49b"
+        },
+        {
+          "path": "frontend/package.json",
+          "tokens": 157,
+          "lines": 21,
+          "mtime": 1776686920.9535007,
+          "hash": "d377942bccc0dd657f695a0aa4821cf4bb9ecca3"
+        },
+        {
+          "path": "frontend/postcss.config.js",
+          "tokens": 21,
+          "lines": 6,
+          "mtime": 1776686920.978746,
+          "hash": "c292eecab05ba16681c83ec822c2e5cdc8e41c84"
+        },
+        {
+          "path": "frontend/src/App.vue",
+          "tokens": 696,
+          "lines": 76,
+          "mtime": 1776686921.0102983,
+          "hash": "18e8e0a80aadd7b64bf6efe0e3cc77491f115955"
+        },
+        {
+          "path": "frontend/src/main.js",
+          "tokens": 29,
+          "lines": 5,
+          "mtime": 1776686921.0485618,
+          "hash": "0f12e357eee62dfa08038cc640cc8a66e462cae9"
+        },
+        {
+          "path": "frontend/src/style.css",
+          "tokens": 15,
+          "lines": 3,
+          "mtime": 1776686921.0769818,
+          "hash": "2d05991c511e99edc084ff6589d7bec426ba620e"
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "tokens": 58,
+          "lines": 11,
+          "mtime": 1776686921.0987265,
+          "hash": "3b8f1f8991ecb0379971aa1a699daec65a126b68"
+        },
+        {
+          "path": "frontend/vite.config.js",
+          "tokens": 61,
+          "lines": 11,
+          "mtime": 1776686921.1249228,
+          "hash": "64203672e35571231f3a236b1f72d55a98c5ba18"
+        }
+      ],
+      "total_tokens": 1365,
+      "intro_text": "We are working on an AI-powered desktop agent that analyzes whole-album audio features to ensure vinyl purchases are \"skip-free\" and align with the user's personal taste.\n\nContinue work on the plan laid out in `todo.md`. If a bug is reported, fix it first. ONLY output `todo.md` (in full, without omissions) when explicitly updating checkbox status.",
+      "outro_text": "DO:\n- always return full code, unless a change is VERY small (a single line or a short connected segment)\n- make sure empty lines are actually empty: avoid generating lines of spaces or tabs\nalways place closing triple backticks (```) on their own, new line\n\nDo NOT:\n- remove my original comments\n- return diff files\n- use numbered steps (e.g., \"1.\") in comments\n- use <summary> tags\n- end comments with dots (unless you are using multiple sentences)\n- call something \"final\" or \"definitive\"; it usually isn't\n- use double newlines between code\n- add comments if the code itself makes it pretty clear what it does\n\nUse the following format if you want to add temporary notification comments: `// [KEYWORD] Comment` (e.g., `[FIX] Now using correct value`, `[MODIFIED] Improved algorithm`). These comments are transient and exist only to show the user what you've changed. If you find them in code you are reviewing, remove these comments as the user will have already seen them.",
+      "expanded_dirs": [],
+      "unknown_files": []
+    }
+  },
+  "known_files": [
+    "README.md",
+    "backend/__init__.py",
+    "backend/bridge.py",
+    "backend/main.py",
+    "concept.md",
+    "frontend/index.html",
+    "frontend/package.json",
+    "frontend/postcss.config.js",
+    "frontend/src/App.vue",
+    "frontend/src/main.js",
+    "frontend/src/style.css",
+    "frontend/tailwind.config.js",
+    "frontend/vite.config.js",
+    "go.bat",
+    "llm.md",
+    "project-starter.json",
+    "release.bat",
+    "requirements.txt",
+    "todo.md",
+    "version.txt"
+  ]
+}

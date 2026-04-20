@@ -1,0 +1,44 @@
+import webview
+import os
+import shutil
+from backend.bridge import Bridge
+
+def check_ffmpeg():
+    if not shutil.which('ffmpeg'):
+        print("WARNING: ffmpeg not found. Librosa analysis will fail.")
+        return False
+    return True
+
+def main():
+    check_ffmpeg()
+
+    bridge = Bridge()
+
+    # In development, Vite runs on 5173 by default
+    # Use environment variable to toggle dev/prod mode
+    is_dev = os.getenv('PYWEBVIEW_DEV', 'true').lower() == 'true'
+
+    if is_dev:
+        url = 'http://localhost:5173'
+    else:
+        # Resolve path to the built frontend
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        url = os.path.join(current_dir, '..', 'frontend', 'dist', 'index.html')
+        if not os.path.exists(url):
+            print(f"Error: Production build not found at {url}")
+            # Fallback to dev for safety during early stages
+            url = 'http://localhost:5173'
+
+    window = webview.create_window(
+        'Vinyl Recommender',
+        url,
+        js_api=bridge,
+        width=1200,
+        height=800,
+        background_color='#111827'
+    )
+
+    webview.start(debug=is_dev)
+
+if __name__ == '__main__':
+    main()
