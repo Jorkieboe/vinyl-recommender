@@ -58,7 +58,7 @@ goto :Usage
         echo Forcing CPU-only PyTorch installation...
         call :CheckUv
         if !errorlevel! neq 0 goto :eof
-        uv pip install --force-reinstall torch torchaudio
+        uv pip install --reinstall torch torchaudio --index-url https://download.pytorch.org/whl/cpu
     )
 
     echo Deleting old build folders...
@@ -113,9 +113,26 @@ goto :Usage
             exit /b 1
         )
         call %VENV_DIR%\Scripts\activate
+        
+        echo.
+        echo --- Checking Hardware for PyTorch ---
+        :: Check if nvidia-smi exists and executes successfully (indicates an NVIDIA GPU is present)
+        nvidia-smi >nul 2>nul
+        if !errorlevel! equ 0 (
+            echo [INFO] NVIDIA GPU detected. Installing PyTorch with CUDA support...
+            uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+        ) else (
+            echo [INFO] No NVIDIA GPU detected. Installing CPU-only PyTorch...
+            uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+        )
+        if !errorlevel! neq 0 (
+            echo ERROR: Failed to install PyTorch.
+            exit /b 1
+        )
+
         if exist requirements.txt (
             echo.
-            echo --- Installing Application Requirements with uv ---
+            echo --- Installing Remaining Application Requirements ---
             uv pip install -r requirements.txt
             if !errorlevel! neq 0 exit /b 1
         )
@@ -133,7 +150,7 @@ goto :Usage
     echo   (no flag) - Runs the main application script
     echo   cmd       - Opens a command prompt with the venv activated
     echo   f         - Freezes dependencies to requirements.txt
-    echo   b         - Builds the application using PyInstaller
+    echo   b         - Builds the application using PyInstaller (use 'b cpu' to force a CPU build)
     echo   r         - Handles the release tagging process
     echo.
     goto :eof
