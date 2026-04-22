@@ -1,0 +1,146 @@
+[
+  {
+    "path": "README.md"
+  },
+  {
+    "path": "go.bat"
+  },
+  {
+    "path": "llm.md"
+  },
+  {
+    "path": "release.bat"
+  },
+  {
+    "path": "version.txt"
+  },
+  {
+    "path": "requirements.txt",
+    "tokens": 468,
+    "lines": 54,
+    "mtime": 1776846012.0486412,
+    "hash": "ae045fa9a70a0a0fca5661b860f7aface0828169"
+  },
+  {
+    "path": "concept.md"
+  },
+  {
+    "path": "todo.md",
+    "tokens": 1397,
+    "lines": 78,
+    "mtime": 1776692058.1822493,
+    "hash": "59190568eeb4ba8960a7f459a8a643bcf7846ac0"
+  },
+  {
+    "path": "backend/__init__.py",
+    "tokens": 0,
+    "lines": 1,
+    "mtime": 1776686920.8494577,
+    "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+  },
+  {
+    "path": "backend/bridge.py",
+    "tokens": 2145,
+    "lines": 248,
+    "mtime": 1776851850.364761,
+    "hash": "f0ac2b1ef0ce6d1feab4c2e866f7e13064c16226"
+  },
+  {
+    "path": "backend/main.py",
+    "tokens": 325,
+    "lines": 52,
+    "mtime": 1776689726.8112023,
+    "hash": "e75b88ff5fba507cb618c387cdefd61c262e5cf3"
+  },
+  {
+    "path": "frontend/index.html",
+    "tokens": 94,
+    "lines": 12,
+    "mtime": 1776686920.924847,
+    "hash": "631dc44bf6f22ada21711aa345bc20c48376b49b"
+  },
+  {
+    "path": "frontend/package.json",
+    "tokens": 157,
+    "lines": 21,
+    "mtime": 1776686920.9535007,
+    "hash": "d377942bccc0dd657f695a0aa4821cf4bb9ecca3"
+  },
+  {
+    "path": "frontend/postcss.config.js",
+    "tokens": 21,
+    "lines": 6,
+    "mtime": 1776686920.978746,
+    "hash": "c292eecab05ba16681c83ec822c2e5cdc8e41c84"
+  },
+  {
+    "path": "frontend/src/App.vue",
+    "tokens": 5821,
+    "lines": 492,
+    "mtime": 1776851078.332842,
+    "hash": "4d578a45bf4d8af9188640554a61ce5020882b78"
+  },
+  {
+    "path": "frontend/src/main.js",
+    "tokens": 29,
+    "lines": 5,
+    "mtime": 1776686921.0485618,
+    "hash": "0f12e357eee62dfa08038cc640cc8a66e462cae9"
+  },
+  {
+    "path": "frontend/src/style.css",
+    "tokens": 15,
+    "lines": 3,
+    "mtime": 1776686921.0769818,
+    "hash": "2d05991c511e99edc084ff6589d7bec426ba620e"
+  },
+  {
+    "path": "frontend/tailwind.config.js",
+    "tokens": 58,
+    "lines": 11,
+    "mtime": 1776686921.0987265,
+    "hash": "3b8f1f8991ecb0379971aa1a699daec65a126b68"
+  },
+  {
+    "path": "frontend/vite.config.js",
+    "tokens": 61,
+    "lines": 11,
+    "mtime": 1776686921.1249228,
+    "hash": "64203672e35571231f3a236b1f72d55a98c5ba18"
+  },
+  {
+    "path": "backend/database.py",
+    "tokens": 1227,
+    "lines": 178,
+    "mtime": 1776850567.3209906,
+    "hash": "04d7909a93cd032542b028bd49869cfc02b950d4"
+  },
+  {
+    "path": "backend/deezer_client.py",
+    "tokens": 756,
+    "lines": 94,
+    "mtime": 1776697047.030513,
+    "hash": "c675bdb2a24f9ebd6bb37de60c9d16f8562a75a5"
+  },
+  {
+    "path": "backend/llm_advisor.py",
+    "tokens": 821,
+    "lines": 94,
+    "mtime": 1776692058.2841978,
+    "hash": "4c4cf779e313bf42347fd0c600bea7876e73ca3e"
+  },
+  {
+    "path": ".env",
+    "tokens": 54,
+    "lines": 5,
+    "mtime": 1776689726.968126,
+    "hash": "bc99a56e8dbf7d1401ecf117c6ddffe80d8452ea"
+  },
+  {
+    "path": "backend/scraper.py",
+    "tokens": 441,
+    "lines": 57,
+    "mtime": 1776692058.3720663,
+    "hash": "c238f6210c698189bee294abd6d1be34a9febbd9"
+  }
+]

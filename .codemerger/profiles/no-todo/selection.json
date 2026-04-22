@@ -1,0 +1,148 @@
+[
+  {
+    "path": "backend/bridge.py",
+    "tokens": 2145,
+    "ignoreTokens": false,
+    "lines": 248,
+    "mtime": 1776851850.364761,
+    "hash": "f0ac2b1ef0ce6d1feab4c2e866f7e13064c16226"
+  },
+  {
+    "path": "backend/database.py",
+    "tokens": 1227,
+    "ignoreTokens": false,
+    "lines": 178,
+    "mtime": 1776850567.3209906,
+    "hash": "04d7909a93cd032542b028bd49869cfc02b950d4"
+  },
+  {
+    "path": "backend/deezer_client.py",
+    "tokens": 756,
+    "ignoreTokens": false,
+    "lines": 94,
+    "mtime": 1776697047.030513,
+    "hash": "c675bdb2a24f9ebd6bb37de60c9d16f8562a75a5"
+  },
+  {
+    "path": "backend/llm_advisor.py",
+    "tokens": 821,
+    "ignoreTokens": false
+  },
+  {
+    "path": "backend/main.py",
+    "tokens": 325,
+    "ignoreTokens": false
+  },
+  {
+    "path": "backend/scraper.py",
+    "tokens": 441,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/src/App.vue",
+    "tokens": 5821,
+    "ignoreTokens": false,
+    "lines": 492,
+    "mtime": 1776851078.332842,
+    "hash": "4d578a45bf4d8af9188640554a61ce5020882b78"
+  },
+  {
+    "path": "frontend/src/main.js",
+    "tokens": 29,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/src/style.css",
+    "tokens": 15,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/index.html",
+    "tokens": 94,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/package.json",
+    "tokens": 157,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/postcss.config.js",
+    "tokens": 21,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/tailwind.config.js",
+    "tokens": 58,
+    "ignoreTokens": false
+  },
+  {
+    "path": "frontend/vite.config.js",
+    "tokens": 61,
+    "ignoreTokens": false
+  },
+  {
+    "path": "concept.md",
+    "tokens": 1456,
+    "ignoreTokens": false
+  },
+  {
+    "path": "go.bat",
+    "tokens": 981,
+    "ignoreTokens": false
+  },
+  {
+    "path": "llm.md",
+    "tokens": 357,
+    "ignoreTokens": false
+  },
+  {
+    "path": "project-starter.json",
+    "tokens": 8891,
+    "ignoreTokens": false
+  },
+  {
+    "path": "README.md",
+    "tokens": 434,
+    "ignoreTokens": false
+  },
+  {
+    "path": "release.bat",
+    "tokens": 822,
+    "ignoreTokens": false
+  },
+  {
+    "path": "requirements.txt",
+    "tokens": 468,
+    "ignoreTokens": false,
+    "lines": 54,
+    "mtime": 1776846012.0486412,
+    "hash": "ae045fa9a70a0a0fca5661b860f7aface0828169"
+  },
+  {
+    "path": "version.txt",
+    "tokens": 11,
+    "ignoreTokens": false
+  },
+  {
+    "path": "backend/clap_analyzer.py",
+    "tokens": 576,
+    "lines": 68,
+    "mtime": 1776848638.2984726,
+    "hash": "1b7475795a1905f9bd79668f4a1ed3fdd050f586"
+  },
+  {
+    "path": "backend/clap_prompts.yaml",
+    "tokens": 717,
+    "lines": 76,
+    "mtime": 1776849951.1431239,
+    "hash": "c658824ec492de22c3ef468a4c097a4f498ffb6c"
+  },
+  {
+    "path": "backend/profile_engine.py",
+    "tokens": 327,
+    "lines": 37,
+    "mtime": 1776850564.285015,
+    "hash": "cf9bfa70f0c57ec44f3d83041c708d27956752eb"
+  }
+]
