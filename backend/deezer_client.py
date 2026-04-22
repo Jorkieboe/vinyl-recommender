@@ -8,16 +8,21 @@ class DeezerClient:
     BASE_URL = "https://api.deezer.com"
 
     def get_loved_tracks(self, user_id):
-        """Fetches the 'Loved Tracks' for a specific user ID"""
-        try:
-            # Note: For production, this would use OAuth tokens
-            # For this MVP, we assume public profiles or a provided ID
-            response = requests.get(f"{self.BASE_URL}/user/{user_id}/tracks")
-            response.raise_for_status()
-            return response.json().get('data', [])
-        except Exception as e:
-            print(f"Error fetching loved tracks: {e}")
-            return []
+        """Fetches the 'Loved Tracks' for a specific user ID (Top 50 via pagination)"""
+        all_tracks = []
+        # Paginate to get up to 50 tracks as requested
+        for index in [0, 25]:
+            try:
+                # Note: For production, this would use OAuth tokens
+                # For this MVP, we assume public profiles or a provided ID
+                response = requests.get(f"{self.BASE_URL}/user/{user_id}/charts?index={index}")
+                response.raise_for_status()
+                data = response.json().get('data', [])
+                all_tracks.extend(data)
+            except Exception as e:
+                print(f"Error fetching loved tracks at index {index}: {e}")
+
+        return all_tracks
 
     def get_track(self, track_id):
         """Fetches track metadata"""

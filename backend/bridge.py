@@ -4,12 +4,14 @@ import os
 from backend.deezer_client import DeezerClient
 from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
+from backend.scraper import MarketplaceScraper
 
 class Bridge:
     def __init__(self):
         self.db = Database()
         self.client = DeezerClient()
         self.advisor = LLMAdvisor()
+        self.scraper = MarketplaceScraper(self.advisor)
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
@@ -42,7 +44,10 @@ class Bridge:
                 if preview_path:
                     features = self.client.analyze_audio(preview_path)
                     if features:
-                        self.db.save_track_preference(track_data, features)
+                        # Extract cover art URL
+                        print(track_data.get('album', {}))
+                        cover_url = track_data.get('album', {}).get('cover_medium', '')
+                        self.db.save_track_preference(track_data, features, cover_url)
 
                     # Cleanup
                     try:
@@ -60,6 +65,10 @@ class Bridge:
         count = self.db.get_preference_count()
         return {"count": count}
 
+    def get_synced_tracks(self):
+        """Returns all synced tracks from the database"""
+        return self.db.get_all_synced_tracks()
+
     def _calculate_similarity(self, feat_a, feat_b):
         """Simple Euclidean distance based similarity (0 to 1)"""
         # MFCC
@@ -71,9 +80,16 @@ class Bridge:
         score = 1 / (1 + (0.01 * dist_mfcc) + (0.5 * dist_chroma))
         return float(score)
 
+    def get_album_analysis(self, album_id):
+        """Returns cached analysis for an album if it exists"""
+        cached = self.db.get_scanned_album(album_id)
+        if cached:
+            return {"status": "success", "data": cached}
+        return {"status": "not_found"}
+
     def analyze_album_for_track(self, track_id):
         """
-        Full logic: Find album -> Analyze all tracks -> Compare to Centroid -> LLM Insight
+        Full logic: Find album -> Analyze all tracks -> Compare to Centroid -> LLM Insight -> Scrape
         """
         track_meta = self.client.get_track(track_id)
         if not track_meta:
@@ -124,19 +140,69 @@ class Bridge:
             # 3. Get LLM Breakdown
             album_info = {
                 "title": track_meta['album']['title'],
-                "artist": track_meta['artist']['name']
+                "artist": track_meta['artist']['name'],
+                "cover_url": track_meta['album'].get('cover_medium', '')
             }
             insight = self.advisor.get_album_insight(album_info, track_scores, centroid)
 
-            # 4. Save to DB
+            # 4. Marketplace Scraper (Triggered if score > 65)
+            acquisition_links = []
+            if insight.get('confidence_score', 0) > 65:
+                print(f"Score high ({insight['confidence_score']}%). Triggering marketplace search...")
+                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'])
+                insight['acquisition_links'] = acquisition_links
+
+            # 5. Save to DB
             self.db.save_scanned_album(
                 album_id,
                 album_info['title'],
                 album_info['artist'],
                 insight['confidence_score'],
-                insight
+                insight,
+                album_info['cover_url']
             )
             print(f"Analysis complete for {album_info['title']}")
 
         threading.Thread(target=analysis_worker, daemon=True).start()
-        return {"status": "pending", "message": "Album analysis started"}
+        return {"status": "pending", "message": "Album analysis started", "album_id": album_id}
+
+    def test_clap_on_track(self, track_id):
+        """Tests natural language audio tagging via CLAP for a single track"""
+        track_meta = self.client.get_track(track_id)
+        if not track_meta:
+            return {"status": "error", "message": "Track not found"}
+
+        # Return cached CLAP results if available
+        cached = self.db.get_clap_result(track_id)
+        if cached:
+            return {"status": "success", "data": cached}
+
+        def worker():
+            print(f"Starting CLAP analysis for track {track_id}")
+            path = self.client.download_preview(track_meta['preview'], track_meta['id'])
+            if path:
+                try:
+                    # Lazy load CLAP Analyzer to prevent huge startup delay
+                    from backend.clap_analyzer import ClapAnalyzer
+                    if not hasattr(self, 'clap_analyzer'):
+                        self.clap_analyzer = ClapAnalyzer()
+
+                    results = self.clap_analyzer.analyze(path)
+                    if results:
+                        self.db.save_clap_result(track_id, results)
+                        print(f"CLAP Analysis complete for {track_meta['title']}")
+                except Exception as e:
+                    print(f"CLAP Error: {e}")
+                finally:
+                    if os.path.exists(path):
+                        os.remove(path)
+
+        threading.Thread(target=worker, daemon=True).start()
+        return {"status": "pending", "message": "CLAP analysis started", "track_id": track_id}
+
+    def get_clap_result(self, track_id):
+        """Returns cached CLAP analysis for a track"""
+        res = self.db.get_clap_result(track_id)
+        if res:
+            return {"status": "success", "data": res}
+        return {"status": "pending"}

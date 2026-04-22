@@ -55,3 +55,40 @@ class LLMAdvisor:
                 "sonic_breakdown": "Failed to generate analysis.",
                 "filler_tracks": []
             }
+
+    def parse_scraper_results(self, artist, album, raw_results):
+        """
+        Uses LLM to find the actual purchase link and price from raw HTML/text.
+        """
+        prompt = f"""
+        Extract direct purchase links and prices for the vinyl record of '{album}' by '{artist}' from the following raw scraper data.
+
+        Scraper Data:
+        {json.dumps(raw_results, indent=2)}
+
+        Instructions:
+        1. Look for items that match the artist and album exactly.
+        2. Ensure the item is a Vinyl/LP, not a CD or Digital download.
+        3. Extract the price (in Euros if possible) and the direct product URL.
+        4. If no clear match is found, return an empty list.
+
+        Response MUST be a valid JSON object with:
+        "links": [
+            {{"site": "string", "price": "string", "url": "string", "status": "In Stock/Out of Stock"}}
+        ]
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+                messages=[
+                    {"role": "system", "content": "You are a data extraction specialist focused on e-commerce."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            data = json.loads(response.choices[0].message.content)
+            return data.get('links', [])
+        except Exception as e:
+            print(f"LLM Scraper Parsing Error: {e}")
+            return []

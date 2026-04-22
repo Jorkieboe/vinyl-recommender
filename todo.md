@@ -42,26 +42,26 @@
 
 **Goal:** Automatically find physical purchase links using Playwright and LLM-driven parsing.
 
-- [ ] **Scraper Foundation:** Initialize `Playwright` in headless mode.
-- [ ] **Site Drivers:**
-  - [ ] Implement scrapers for `Velvet.nl`, `Bol.com`, and a fallback Google search.
-- [ ] **LLM Scraping Logic:** Use the LLM to parse raw HTML/Text from the scrapers to find the exact "Buy it Now" price and stock status (handles fragile site changes).
-- [ ] **Acquisition Trigger:** Logic to only initiate scraping if the Album Confidence Score exceeds 65% after the user clicks the "Worth Buying" button.
-- [ ] **Testing Point 5: Scraper Reliability**
-  - [ ] Search for a known vinyl record and verify the scraper returns at least one valid URL and price from a Dutch retailer.
+- [x] **Scraper Foundation:** Initialize `Playwright` in headless mode.
+- [x] **Site Drivers:**
+  - [x] Implement scrapers for `Velvet.nl`, `Bol.com`, and a fallback Google search.
+- [x] **LLM Scraping Logic:** Use the LLM to parse raw HTML/Text from the scrapers to find the exact "Buy it Now" price and stock status (handles fragile site changes).
+- [x] **Acquisition Trigger:** Logic to only initiate scraping if the Album Confidence Score exceeds 65% after the user clicks the "Worth Buying" button.
+- [x] **Testing Point 5: Scraper Reliability**
+  - [x] Search for a known vinyl record and verify the scraper returns at least one valid URL and price from a Dutch retailer.
 
 ## Frontend UI & User Flow
 
 **Goal:** Create the visual experience for the "Buy-Ready" loop, focusing on track-initiated searches.
 
-- [ ] **Dashboard:** Build a view displaying the sync'd "Loved Tracks" from the database with their sonic profile status.
-- [ ] **"Worth Buying?" Action:**
-  - [ ] Add a prominent button/icon to each track in the favorites list: "Is the album worth it?".
-  - [ ] Implement the loading state while Librosa analyzes the rest of that track's parent album.
-- [ ] **The Verdict View:**
-  - [ ] Display the 0-100% Purchase Confidence Score for the album.
-  - [ ] Show the "Filler Detection" list (flagging risky tracks that don't match the user's saved features).
-  - [ ] Display acquisition links with prices once the scan finishes.
+- [x] **Dashboard:** Build a view displaying the sync'd "Loved Tracks" from the database with their sonic profile status.
+- [x] **"Worth Buying?" Action:**
+  - [x] Add a prominent button/icon to each track in the favorites list: "Is the album worth it?".
+  - [x] Implement the loading state while Librosa analyzes the rest of that track's parent album.
+- [x] **The Verdict View:**
+  - [x] Display the 0-100% Purchase Confidence Score for the album.
+  - [x] Show the "Filler Detection" list (flagging risky tracks that don't match the user's saved features).
+  - [x] Display acquisition links with prices once the scan finishes.
 - [ ] **Collection Log:** "I bought this" button to add the record to the "Physical Shelf" view.
 - [ ] **Testing Point 6: UX Walkthrough**
   - [ ] Perform the full flow: Sync Tracks -> Automated Librosa Profiling -> Click "Worth Buying" on a track -> Review Album Score -> View Purchase Links.
