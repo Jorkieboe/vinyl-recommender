@@ -57,7 +57,38 @@ class Database:
                 )
             ''')
 
+            # Global User Profile (Sonic DNA)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS global_profile (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    profile_json TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
             conn.commit()
+
+    def save_global_profile(self, profile):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO global_profile (id, profile_json, updated_at)
+                VALUES (1, ?, CURRENT_TIMESTAMP)
+            ''', (json.dumps(profile),))
+            conn.commit()
+
+    def get_global_profile(self):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT profile_json FROM global_profile WHERE id = 1')
+            row = cursor.fetchone()
+            return json.loads(row[0]) if row else None
+
+    def get_all_clap_results(self):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT results_json FROM clap_results')
+            return [json.loads(row[0]) for row in cursor.fetchall()]
 
     def save_track_preference(self, track_meta, features, cover_url):
         with self.get_connection() as conn:

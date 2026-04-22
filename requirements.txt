@@ -47,3 +47,8 @@ tqdm==4.67.3
 typing-extensions==4.15.0
 typing-inspection==0.4.2
 urllib3==2.6.3
+transformers
+accelerate
+torch
+torchaudio
+PyYAML

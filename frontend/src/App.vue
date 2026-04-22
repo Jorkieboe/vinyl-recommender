@@ -3,10 +3,11 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const message = ref('Waiting for bridge...')
 const response = ref('')
-const userId = ref('2529')
+const userId = ref('')
 const syncStatus = ref('Idle')
 const trackCount = ref(0)
 const syncedTracks = ref([])
+const userProfile = ref(null)
 
 // Album Analysis State
 const activeAnalysis = ref(null)
@@ -139,20 +140,33 @@ const startClapPolling = (trackId) => {
   }, 2000)
 }
 
+const fetchUserProfile = async () => {
+  if (window.pywebview && window.pywebview.api) {
+    const res = await window.pywebview.api.get_user_profile()
+    if (res.status === 'success') {
+      userProfile.value = res.data
+    }
+  }
+}
+
 const startPolling = () => {
   if (pollInterval) clearInterval(pollInterval)
   pollInterval = setInterval(() => {
     updateStatus()
     fetchSyncedTracks()
+    fetchUserProfile()
   }, 2000)
 }
 
 onMounted(() => {
-  const interval = setInterval(() => {
+  const interval = setInterval(async () => {
     if (window.pywebview && window.pywebview.api) {
       message.value = 'Bridge Connected'
+      const defUser = await window.pywebview.api.get_default_user()
+      if (defUser) userId.value = defUser
       updateStatus()
       fetchSyncedTracks()
+      fetchUserProfile()
       clearInterval(interval)
     }
   }, 100)
@@ -206,6 +220,24 @@ onUnmounted(() => {
             <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-center">
               <span class="text-gray-500 block text-[10px] uppercase">Tracks</span>
               <span class="text-green-400 text-sm font-bold">{{ trackCount }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section v-if="userProfile" class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
+          <h2 class="text-lg font-bold mb-4 flex items-center">
+            <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
+            Sonic DNA Profile
+          </h2>
+          <div class="space-y-4">
+            <div v-for="(labels, layer) in userProfile" :key="layer" class="bg-gray-900/50 p-3 rounded-xl border border-gray-700">
+              <span class="text-[10px] uppercase font-bold text-gray-500 block mb-2">{{ layer.split(':')[1]?.trim() || layer }}</span>
+              <div class="flex flex-col gap-1">
+                <div v-for="(label, idx) in labels" :key="label" class="flex items-center text-[11px]">
+                  <span class="text-pink-400 font-mono w-4">{{ idx + 1 }}.</span>
+                  <span class="text-gray-300 truncate">{{ label }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -267,110 +299,144 @@ onUnmounted(() => {
         </section>
       </div>
 
-      <!-- Right Column: Analysis Verdict & CLAP -->
       <div class="lg:col-span-1">
-        <section class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 min-h-[600px] flex flex-col overflow-y-auto">
+    <section class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 min-h-[600px] flex flex-col overflow-y-auto">
 
-          <!-- CLAP Loading State -->
-          <div v-if="activeClap" class="flex-1 flex flex-col items-center justify-center space-y-4">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-            <p class="text-pink-400 font-bold animate-pulse">{{ activeClap.status }}</p>
-            <p class="text-[10px] text-gray-500 max-w-[200px] text-center">First run will download the model to your device (this may take a few minutes).</p>
-          </div>
+      <!-- CLAP Loading State -->
+      <div v-if="activeClap" class="flex-1 flex flex-col items-center justify-center space-y-4">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+        <p class="text-pink-400 font-bold animate-pulse">{{ activeClap.status }}</p>
+        <p class="text-[10px] text-gray-500 max-w-[200px] text-center">
+          First run will download the model to your device (this may take a few minutes).
+        </p>
+      </div>
 
-          <!-- CLAP Result View -->
-          <div v-else-if="clapResult" class="space-y-6">
-            <div class="text-center mb-6">
-                <h2 class="text-xl font-bold mt-4 text-pink-400 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  CLAP Audio Analysis
-                </h2>
-                <p class="text-xs text-gray-400 mt-2">Natural language semantic tag probabilities</p>
-            </div>
-            <div v-for="(probs, layerName) in clapResult" :key="layerName" class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <h4 class="text-[10px] uppercase font-bold text-gray-500 mb-3 tracking-widest">{{ layerName }}</h4>
-                <div class="space-y-3">
-                    <div v-for="(prob, label) in probs" :key="label" class="flex items-center">
-                        <div class="w-32 truncate text-[11px] text-gray-300 pr-3" :title="label">{{ label }}</div>
-                        <div class="flex-1 bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-pink-500 h-1.5 rounded-full transition-all duration-1000" :style="{ width: (prob * 100) + '%' }"></div>
-                        </div>
-                        <div class="w-10 text-right text-[10px] text-gray-500 font-mono">{{ Math.round(prob * 100) }}%</div>
-                    </div>
+      <!-- CLAP Result -->
+      <div v-else-if="clapResult" class="space-y-4">
+
+        <div class="text-center mb-4">
+          <h2 class="text-xl font-bold mt-4 text-pink-400 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Sonic Signature
+          </h2>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Top Track Traits</p>
+        </div>
+
+        <div
+          v-for="(pairs, layerName) in clapResult"
+          :key="layerName"
+          class="bg-gray-900/50 p-4 rounded-xl border border-gray-700"
+        >
+          <h4 class="text-[9px] uppercase font-black text-gray-500 mb-3 tracking-[0.2em]">
+            {{ layerName.split(':')[1]?.trim() || layerName }}
+          </h4>
+
+          <div class="space-y-3">
+            <div v-for="([label, prob], idx) in pairs" :key="label">
+
+              <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center">
+                  <span class="text-[9px] font-mono mr-2" :class="idx === 0 ? 'text-pink-400' : 'text-gray-600'">
+                    #{{ idx + 1 }}
+                  </span>
+                  <span class="text-[11px] text-gray-300 font-medium truncate max-w-[150px]" :title="label">
+                    {{ label }}
+                  </span>
                 </div>
-            </div>
-          </div>
-
-          <!-- Album Analysis Loading State -->
-          <div v-else-if="activeAnalysis" class="flex-1 flex flex-col items-center justify-center space-y-4">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-            <p class="text-indigo-400 font-bold animate-pulse">{{ activeAnalysis.status }}</p>
-            <p class="text-[10px] text-gray-500 max-w-[200px] text-center">Analyzing every track on the album for sonic compatibility...</p>
-          </div>
-
-          <!-- Album Analysis Verdict View -->
-          <div v-else-if="analysisResult" class="space-y-6">
-            <h2 class="text-lg font-bold mb-2 flex items-center">
-              <span class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></span>
-              The Verdict
-            </h2>
-            <div class="text-center">
-              <div class="relative inline-block mb-4">
-                <img :src="analysisResult.cover_url" class="w-48 h-48 rounded-2xl shadow-2xl mx-auto border-4 border-gray-700" v-if="analysisResult.cover_url" />
-                <div class="absolute -bottom-4 -right-4 inline-flex items-center justify-center p-4 rounded-full border-4 bg-gray-800 shadow-xl"
-                     :class="analysisResult.confidence_score > 70 ? 'border-green-500' : 'border-yellow-500'">
-                  <span class="text-2xl font-black">{{ analysisResult.confidence_score }}%</span>
-                </div>
-              </div>
-              <h3 class="text-xl font-bold mt-4">{{ analysisResult.title }}</h3>
-              <p class="text-sm text-gray-400">{{ analysisResult.artist }}</p>
-            </div>
-
-            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-              <h4 class="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-widest">Sonic Breakdown</h4>
-              <p class="text-sm italic leading-relaxed text-gray-300">"{{ analysisResult.analysis_json.sonic_breakdown }}"</p>
-            </div>
-
-            <div v-if="analysisResult.analysis_json.filler_tracks?.length" class="space-y-2">
-              <h4 class="text-[10px] uppercase font-bold text-red-400 tracking-widest">Risk Factor: Possible Skips</h4>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="track in analysisResult.analysis_json.filler_tracks" :key="track"
-                      class="px-2 py-1 bg-red-900/20 text-red-400 text-[10px] rounded border border-red-900/50">
-                  {{ track }}
+                <span class="text-[10px] font-mono text-gray-500">
+                  {{ Math.round(prob * 100) }}%
                 </span>
               </div>
-            </div>
 
-            <div v-if="analysisResult.analysis_json.acquisition_links?.length" class="space-y-3 pt-4 border-t border-gray-700">
-              <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">Where to Buy</h4>
-              <div v-for="link in analysisResult.analysis_json.acquisition_links" :key="link.url"
-                   class="bg-gray-900/80 p-3 rounded-xl border border-gray-700 flex items-center justify-between">
-                <div>
-                  <p class="font-bold text-sm">{{ link.site }}</p>
-                  <p class="text-xs text-green-400">{{ link.price }} • {{ link.status }}</p>
-                </div>
-                <a :href="link.url" target="_blank"
-                   class="bg-indigo-600 hover:bg-indigo-500 text-xs font-bold px-3 py-1 rounded-lg transition">
-                  Buy
-                </a>
+              <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                <div
+                  class="bg-pink-500 h-full rounded-full transition-all duration-1000"
+                  :style="{ width: (prob * 100) + '%', opacity: 1 - (idx * 0.25) }"
+                ></div>
               </div>
+
             </div>
-            <div v-else-if="analysisResult.confidence_score > 65" class="text-xs text-gray-500 italic text-center">
-              No physical copies found at supported retailers.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Album Analysis Loading State -->
+      <div v-else-if="activeAnalysis" class="flex-1 flex flex-col items-center justify-center space-y-4">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        <p class="text-indigo-400 font-bold animate-pulse">{{ activeAnalysis.status }}</p>
+        <p class="text-[10px] text-gray-500 max-w-[200px] text-center">
+          Analyzing every track on the album for sonic compatibility...
+        </p>
+      </div>
+
+      <!-- Album Analysis Verdict View -->
+      <div v-else-if="analysisResult" class="space-y-6">
+
+        <h2 class="text-lg font-bold mb-2 flex items-center">
+          <span class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></span>
+          The Verdict
+        </h2>
+
+        <div class="text-center">
+          <div class="relative inline-block mb-4">
+            <img
+              :src="analysisResult.cover_url"
+              class="w-48 h-48 rounded-2xl shadow-2xl mx-auto border-4 border-gray-700"
+              v-if="analysisResult.cover_url"
+            />
+
+            <div
+              class="absolute -bottom-4 -right-4 inline-flex items-center justify-center p-4 rounded-full border-4 bg-gray-800 shadow-xl"
+              :class="analysisResult.confidence_score > 70 ? 'border-green-500' : 'border-yellow-500'"
+            >
+              <span class="text-2xl font-black">{{ analysisResult.confidence_score }}%</span>
             </div>
           </div>
 
-          <!-- Empty View -->
-          <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-600 text-center px-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
-            <p>Select a track from the dashboard to run deep-audio tagging or album audits.</p>
+          <h3 class="text-xl font-bold mt-4">{{ analysisResult.title }}</h3>
+          <p class="text-sm text-gray-400">{{ analysisResult.artist }}</p>
+        </div>
+
+        <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+          <h4 class="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-widest">
+            Sonic Breakdown
+          </h4>
+          <p class="text-sm italic leading-relaxed text-gray-300">
+            "{{ analysisResult.analysis_json.sonic_breakdown }}"
+          </p>
+        </div>
+
+        <div v-if="analysisResult.analysis_json.filler_tracks?.length" class="space-y-2">
+          <h4 class="text-[10px] uppercase font-bold text-red-400 tracking-widest">
+            Risk Factor: Possible Skips
+          </h4>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="track in analysisResult.analysis_json.filler_tracks"
+              :key="track"
+              class="px-2 py-1 bg-red-900/20 text-red-400 text-[10px] rounded border border-red-900/50"
+            >
+              {{ track }}
+            </span>
           </div>
-        </section>
+        </div>
+
       </div>
+
+      <!-- Empty View -->
+      <div v-else class="flex-1 flex flex-col items-center justify-center text-gray-600 text-center px-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+        </svg>
+        <p>Select a track from the dashboard to run deep-audio tagging or album audits.</p>
+      </div>
+
+    </section>
+  </div>
     </main>
 
     <footer class="mt-12 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-medium">

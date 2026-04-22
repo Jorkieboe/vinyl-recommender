@@ -5,6 +5,7 @@ from backend.deezer_client import DeezerClient
 from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
 from backend.scraper import MarketplaceScraper
+from backend.profile_engine import ProfileEngine
 
 class Bridge:
     def __init__(self):
@@ -12,53 +13,86 @@ class Bridge:
         self.client = DeezerClient()
         self.advisor = LLMAdvisor()
         self.scraper = MarketplaceScraper(self.advisor)
+        self.profile_engine = ProfileEngine()
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
         print(f"JS call to echo: {text}")
         return f"Python received: {text}"
 
+    def get_default_user(self):
+        """Returns the default user ID from environment variables"""
+        return os.getenv("DEFAULT_USER", "2529")
+
     def start_initial_sync(self, user_id):
         """
-        Starts the background process to fetch loved tracks
-        and extract audio features.
+        Starts the background process to fetch loved tracks,
+        extract audio features, and perform CLAP analysis.
         """
         def sync_worker():
             print(f"Starting sync for user: {user_id}")
             tracks = self.client.get_loved_tracks(user_id)
 
             for track in tracks:
-                # Check if already processed
-                if self.db.get_track_preference(track['id']):
-                    continue
-
-                # Fetch full track data for preview URL
                 track_data = self.client.get_track(track['id'])
                 if not track_data or not track_data.get('preview'):
                     continue
 
-                print(f"Processing: {track_data['title']}")
+                needs_features = not self.db.get_track_preference(track['id'])
+                needs_clap = not self.db.get_clap_result(track['id'])
 
-                # Download and Analyze
-                preview_path = self.client.download_preview(track_data['preview'], track_data['id'])
-                if preview_path:
-                    features = self.client.analyze_audio(preview_path)
-                    if features:
-                        # Extract cover art URL
-                        print(track_data.get('album', {}))
-                        cover_url = track_data.get('album', {}).get('cover_medium', '')
-                        self.db.save_track_preference(track_data, features, cover_url)
+                # Consolidate download to one single session per track
+                if needs_features or needs_clap:
+                    print(f"Syncing {track_data['title']}...")
+                    preview_path = self.client.download_preview(track_data['preview'], track_data['id'])
+                    if not preview_path:
+                        continue
 
-                    # Cleanup
                     try:
-                        os.remove(preview_path)
-                    except:
-                        pass
+                        # 1. Librosa Audio Features
+                        if needs_features:
+                            features = self.client.analyze_audio(preview_path)
+                            if features:
+                                cover_url = track_data.get('album', {}).get('cover_medium', '')
+                                self.db.save_track_preference(track_data, features, cover_url)
 
-            print("Sync complete.")
+                        # 2. CLAP AI Semantic Tagging
+                        if needs_clap:
+                            from backend.clap_analyzer import ClapAnalyzer
+                            if not hasattr(self, 'clap_analyzer'):
+                                self.clap_analyzer = ClapAnalyzer()
+
+                            results = self.clap_analyzer.analyze(preview_path)
+                            if results:
+                                self.db.save_clap_result(track['id'], results)
+                    except Exception as e:
+                        print(f"Sync Error for {track_data['title']}: {e}")
+                    finally:
+                        if os.path.exists(preview_path):
+                            os.remove(preview_path)
+
+            # 3. Finalize Global Profile via RRF
+            print("Sync complete. Generating global Sonic DNA Profile...")
+            self.recalculate_user_profile()
 
         threading.Thread(target=sync_worker, daemon=True).start()
         return {"status": "success", "message": "Sync started in background"}
+
+    def recalculate_user_profile(self):
+        """Triggers RRF calculation across all synced tracks"""
+        all_results = self.db.get_all_clap_results()
+        if all_results:
+            profile = self.profile_engine.calculate_rrf(all_results)
+            self.db.save_global_profile(profile)
+            return {"status": "success", "profile": profile}
+        return {"status": "error", "message": "No data for profile calculation"}
+
+    def get_user_profile(self):
+        """Returns the current aggregated Sonic DNA profile"""
+        profile = self.db.get_global_profile()
+        if profile:
+            return {"status": "success", "data": profile}
+        return {"status": "pending"}
 
     def get_sync_status(self):
         """Returns the count of processed tracks"""
@@ -172,10 +206,10 @@ class Bridge:
         if not track_meta:
             return {"status": "error", "message": "Track not found"}
 
-        # Return cached CLAP results if available
-        cached = self.db.get_clap_result(track_id)
-        if cached:
-            return {"status": "success", "data": cached}
+        # Return cached CLAP results if available (formatted for UI)
+        cached_res = self.get_clap_result(track_id)
+        if cached_res["status"] == "success":
+            return cached_res
 
         def worker():
             print(f"Starting CLAP analysis for track {track_id}")
@@ -201,8 +235,14 @@ class Bridge:
         return {"status": "pending", "message": "CLAP analysis started", "track_id": track_id}
 
     def get_clap_result(self, track_id):
-        """Returns cached CLAP analysis for a track"""
+        """Returns cached CLAP analysis for a track with raw probabilities sorted by rank"""
         res = self.db.get_clap_result(track_id)
         if res:
-            return {"status": "success", "data": res}
+            # Sort and filter to Top 3 for the UI, but keep probabilities as pairs [label, prob]
+            ui_res = {}
+            for layer, labels in res.items():
+                sorted_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)
+                # Convert dict items to list of lists for JS compatibility
+                ui_res[layer] = [[label, prob] for label, prob in sorted_labels[:3]]
+            return {"status": "success", "data": ui_res}
         return {"status": "pending"}
