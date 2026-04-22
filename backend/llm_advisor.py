@@ -12,32 +12,40 @@ class LLMAdvisor:
             base_url=self.base_url
         )
 
-    def get_album_insight(self, album_meta, track_scores, cohesion_score):
+    def get_album_insight(self, album_meta, track_scores, journey_data):
         """
         Takes raw similarity math to generate a human breakdown.
-        Similarity scores are calculated against the user's nearest taste cluster.
-        Cohesion score (0-1) represents how consistent the album is internally.
+        journey_data categorizes tracks into Anchors, Bridges, and Horizon tiers.
         """
         prompt = f"""
-        You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums that offer a high-value physical listening experience.
+        You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums that offer growth.
 
-        CONTEXT:
-        Vinyl is for deep, intentional listening. We value "Sonic Cohesion" (an album that stays in its lane) even if it's slightly different from what the user usually hears.
-        We also value "Slow Burns"—albums that might not be an instant 100% match but are consistent enough to grow on the listener.
+        SONIC JOURNEY THEORY:
+        The best vinyl albums are not just clones of what we already like. They are a journey with distinct stages of challenge:
+        - ANCHORS (>80%): Instant comfort. You already love this sound.
+        - INNER BRIDGES (70-80%): Easy growth. Familiar but fresh; highly likely to be liked within 1-2 listens.
+        - OUTER BRIDGES (60-70%): Challenging expansion. Significant departure from your centers; requires intentional "slow burn" listening.
+        - THE HORIZON (<60%): Experimental risk. Very far from your current DNA; high potential for long-term reward but high risk of "skipping."
+
+        IDEAL MIX: A perfect vinyl should bridge these gaps. If an album jumps straight from Anchors to Horizon without "Inner Bridges," it feels disjointed. If it has too many "Outer Bridges" and no "Inner Bridges," it might be too much of a struggle to get through.
 
         INPUT DATA:
         - Target Album: {album_meta['title']} by {album_meta['artist']}
-        - Cluster Similarity Scores (0-1.0): {json.dumps(track_scores, indent=2)}
-        - Album Cohesion Score: {cohesion_score:.2f} (1.0 is perfectly consistent, <0.4 is a disjointed mess)
+        - Track Stats: {json.dumps(journey_data, indent=2)}
+        - Detailed Scores: {json.dumps(track_scores, indent=2)}
 
         INSTRUCTIONS:
-        1. Evaluate if the album has "filler" (tracks below 0.5).
-        2. If the Cohesion Score is HIGH (>0.7), treat the album as a "Strong Artistic Statement." Even if similarity scores are in the 0.6 range, these are HIGH-POTENTIAL GROWERS.
-        3. Provide a "Sonic Breakdown" (2-3 sentences). Be honest about the risk, but highlight if the album is a cohesive experience worth buying for the "Slow Burn."
-        4. Final "Purchase Confidence Score" (0-100%).
+        1. REVIEW the "Calculated Score" ({journey_data['calculated_score']}%). This score uses an "Exploration-First" weight.
+        2. DATA INTERPRETATION:
+           - Anchors (>80%) provide maximum BUY momentum (4 votes).
+           - Inner Bridges (70-80%) are pure BUY momentum (2 votes), signaling "Safe Exploration."
+           - Outer Bridges (60-70%) provide 1 BUY / 2 NOT BUY (leaning towards risk).
+           - Horizon tracks (<60%) provide 3 NOT BUY (high risk).
+        3. EXPLAIN the "Exploration Potential". If the score is high due to many Inner Bridges, explain that the album is a perfect bridge between their current taste and new discoveries.
+        4. Warn if the album is "Repetitive" (journey_data['is_repetitive'] = true).
 
         Response MUST be a valid JSON object with:
-        "confidence_score": int,
+        "confidence_score": int (Matches or slightly adjusts the calculated_score),
         "sonic_breakdown": "string",
         "filler_tracks": ["track_title1", "track_title2"]
         """

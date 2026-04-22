@@ -14,7 +14,7 @@ class Bridge:
         self.advisor = LLMAdvisor()
         self.scraper = MarketplaceScraper(self.advisor)
         self.profile_engine = ProfileEngine()
-        self.cluster_engine = ClusterEngine(n_clusters=3)
+        self.cluster_engine = ClusterEngine(n_clusters=5)
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
@@ -157,17 +157,54 @@ class Bridge:
                         })
                     os.remove(path)
 
-            # 3. Calculate Album Cohesion (Internal consistency)
-            cohesion_score = 0.0
-            if len(album_feature_history) > 1:
-                # Calculate how tightly clustered the album tracks are to each other
-                flattened_vecs = np.array([self.cluster_engine._flatten(f) for f in album_feature_history])
-                scaled_vecs = self.cluster_engine.scaler.transform(flattened_vecs)
-                album_centroid = np.mean(scaled_vecs, axis=0)
-                dists = np.linalg.norm(scaled_vecs - album_centroid, axis=1)
-                # Use a much wider sigma (6.0) to account for high-dimensional spread.
-                # This ensures that visually 'tight' clusters get high cohesion scores (0.7-0.9).
-                cohesion_score = float(np.exp(-np.mean(dists) / 6.0))
+            # 3. Calculate Sonic Journey & Math-Based Confidence
+            journey_data = {
+                "anchors": 0,        # Instant Comfort (>0.80)
+                "inner_bridges": 0,  # Near-term Growth (0.70 - 0.80)
+                "outer_bridges": 0,  # Challenging Expansion (0.60 - 0.70)
+                "horizon": 0,        # Experimental/Risky (<0.60)
+                "is_repetitive": False,
+                "calculated_score": 0
+            }
+
+            if track_scores:
+                sims = [s['similarity'] for s in track_scores]
+                n_anchors = len([s for s in sims if s >= 0.80])
+                n_inner = len([s for s in sims if 0.70 <= s < 0.80])
+                n_outer = len([s for s in sims if 0.60 <= s < 0.70])
+                n_horizon = len([s for s in sims if s < 0.60])
+
+                journey_data.update({
+                    "anchors": n_anchors,
+                    "inner_bridges": n_inner,
+                    "outer_bridges": n_outer,
+                    "horizon": n_horizon
+                })
+
+                # --- Core Decision Logic (Exploration-First Voting System) ---
+                # Weights adjusted to favor albums with strong comfort bases (Anchors)
+                # and discovery potential (Inner Bridges)
+                buy_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 1) + (n_horizon * 0)
+
+                # Total possible votes per tier for normalization
+                # Anchors: 4, Inner: 2, Outer: 3, Horizon: 3
+                total_possible_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 3) + (n_horizon * 3)
+
+                # Calculate percentage of positive evidence
+                calculated_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
+
+                # Hard Gate: No vinyl purchase without at least one instant hook (Anchor)
+                if n_anchors == 0:
+                    calculated_score = min(calculated_score, 30)
+
+                journey_data["calculated_score"] = calculated_score
+
+                if len(album_feature_history) > 1:
+                    flattened_alb = np.array([self.cluster_engine._flatten(f) for f in album_feature_history])
+                    scaled_alb = self.cluster_engine.scaler.transform(flattened_alb)
+                    alb_dispersion = np.mean(np.std(scaled_alb, axis=0))
+                    if alb_dispersion < 0.05:
+                        journey_data["is_repetitive"] = True
 
             # Generate Visualization Map for Debugging
             if album_feature_history:
@@ -179,7 +216,7 @@ class Bridge:
                 "artist": track_meta['artist']['name'],
                 "cover_url": track_meta['album'].get('cover_medium', '')
             }
-            insight = self.advisor.get_album_insight(album_info, track_scores, cohesion_score)
+            insight = self.advisor.get_album_insight(album_info, track_scores, journey_data)
 
             # 5. Marketplace Scraper (Triggered if score > 60 - lowered for potential growers)
             acquisition_links = []

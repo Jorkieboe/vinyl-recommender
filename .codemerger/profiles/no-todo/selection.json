@@ -1,11 +1,11 @@
 [
   {
     "path": "backend/bridge.py",
-    "tokens": 2181,
+    "tokens": 2599,
     "ignoreTokens": false,
-    "lines": 250,
-    "mtime": 1776856201.9594245,
-    "hash": "088ad716e316623810ac47cf607cf8068e53ba7b"
+    "lines": 287,
+    "mtime": 1776860921.999746,
+    "hash": "176d7afa8c565a3d6c5a3984f7f171f62c469ed2"
   },
   {
     "path": "backend/database.py",
@@ -25,11 +25,11 @@
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 988,
+    "tokens": 1146,
     "ignoreTokens": false,
-    "lines": 98,
-    "mtime": 1776855736.825173,
-    "hash": "9aee1cb6b8058fc465c8803994c1f84ec95dd377"
+    "lines": 106,
+    "mtime": 1776860922.0456486,
+    "hash": "f3a5af5c8f89819b45e43644ff568d70cca55948"
   },
   {
     "path": "backend/main.py",

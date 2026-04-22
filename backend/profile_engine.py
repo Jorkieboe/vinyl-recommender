@@ -45,7 +45,7 @@ class ProfileEngine:
         return global_profile
 
 class ClusterEngine:
-    def __init__(self, n_clusters=3):
+    def __init__(self, n_clusters=5):
         self.n_clusters = n_clusters
         self.kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
         self.scaler = StandardScaler()
