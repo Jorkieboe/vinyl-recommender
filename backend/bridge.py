@@ -5,7 +5,7 @@ from backend.deezer_client import DeezerClient
 from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
 from backend.scraper import MarketplaceScraper
-from backend.profile_engine import ProfileEngine
+from backend.profile_engine import ProfileEngine, ClusterEngine
 
 class Bridge:
     def __init__(self):
@@ -14,6 +14,7 @@ class Bridge:
         self.advisor = LLMAdvisor()
         self.scraper = MarketplaceScraper(self.advisor)
         self.profile_engine = ProfileEngine()
+        self.cluster_engine = ClusterEngine(n_clusters=3)
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
@@ -103,17 +104,6 @@ class Bridge:
         """Returns all synced tracks from the database"""
         return self.db.get_all_synced_tracks()
 
-    def _calculate_similarity(self, feat_a, feat_b):
-        """Simple Euclidean distance based similarity (0 to 1)"""
-        # MFCC
-        dist_mfcc = np.linalg.norm(np.array(feat_a['mfcc']) - np.array(feat_b['mfcc']))
-        # Chroma
-        dist_chroma = np.linalg.norm(np.array(feat_a['chroma']) - np.array(feat_b['chroma']))
-
-        # Heuristic normalization
-        score = 1 / (1 + (0.01 * dist_mfcc) + (0.5 * dist_chroma))
-        return float(score)
-
     def get_album_analysis(self, album_id):
         """Returns cached analysis for an album if it exists"""
         cached = self.db.get_scanned_album(album_id)
@@ -123,7 +113,7 @@ class Bridge:
 
     def analyze_album_for_track(self, track_id):
         """
-        Full logic: Find album -> Analyze all tracks -> Compare to Centroid -> LLM Insight -> Scrape
+        Full logic: Find album -> Analyze all tracks -> Compare to Taste Clusters -> LLM Insight -> Scrape
         """
         track_meta = self.client.get_track(track_id)
         if not track_meta:
@@ -137,25 +127,20 @@ class Bridge:
         def analysis_worker():
             print(f"Analyzing album: {track_meta['album']['title']}")
 
-            # 1. Get User Taste Centroid
+            # 1. Prepare User Taste Clusters
             all_features = self.db.get_all_features()
             if not all_features:
                 print("No user preferences found. Please sync first.")
                 return
 
-            # Compute mean vectors for the centroid
-            centroid = {
-                "mfcc": np.mean([f['mfcc'] for f in all_features], axis=0).tolist(),
-                "chroma": np.mean([f['chroma'] for f in all_features], axis=0).tolist(),
-                "spectral_brightness": np.mean([f['spectral_brightness'] for f in all_features])
-            }
+            self.cluster_engine.fit_clusters(all_features)
 
-            # 2. Get Album Tracks
+            # 2. Get Album Tracks and score against nearest cluster
             album_tracks = self.client.get_album_tracks(album_id)
             track_scores = []
+            album_feature_history = []
 
             for t in album_tracks:
-                # We need the preview URL, so fetch full track info
                 full_t = self.client.get_track(t['id'])
                 if not full_t or not full_t.get('preview'):
                     continue
@@ -164,29 +149,46 @@ class Bridge:
                 if path:
                     feats = self.client.analyze_audio(path)
                     if feats:
-                        similarity = self._calculate_similarity(feats, centroid)
+                        album_feature_history.append(feats)
+                        similarity = self.cluster_engine.get_best_similarity(feats)
                         track_scores.append({
                             "title": full_t['title'],
                             "similarity": similarity
                         })
                     os.remove(path)
 
-            # 3. Get LLM Breakdown
+            # 3. Calculate Album Cohesion (Internal consistency)
+            cohesion_score = 0.0
+            if len(album_feature_history) > 1:
+                # Calculate how tightly clustered the album tracks are to each other
+                flattened_vecs = np.array([self.cluster_engine._flatten(f) for f in album_feature_history])
+                scaled_vecs = self.cluster_engine.scaler.transform(flattened_vecs)
+                album_centroid = np.mean(scaled_vecs, axis=0)
+                dists = np.linalg.norm(scaled_vecs - album_centroid, axis=1)
+                # Use a much wider sigma (6.0) to account for high-dimensional spread.
+                # This ensures that visually 'tight' clusters get high cohesion scores (0.7-0.9).
+                cohesion_score = float(np.exp(-np.mean(dists) / 6.0))
+
+            # Generate Visualization Map for Debugging
+            if album_feature_history:
+                self.cluster_engine.generate_taste_map(album_feature_history, track_meta['album']['title'])
+
+            # 4. Get LLM Breakdown
             album_info = {
                 "title": track_meta['album']['title'],
                 "artist": track_meta['artist']['name'],
                 "cover_url": track_meta['album'].get('cover_medium', '')
             }
-            insight = self.advisor.get_album_insight(album_info, track_scores, centroid)
+            insight = self.advisor.get_album_insight(album_info, track_scores, cohesion_score)
 
-            # 4. Marketplace Scraper (Triggered if score > 65)
+            # 5. Marketplace Scraper (Triggered if score > 60 - lowered for potential growers)
             acquisition_links = []
-            if insight.get('confidence_score', 0) > 65:
-                print(f"Score high ({insight['confidence_score']}%). Triggering marketplace search...")
+            if insight.get('confidence_score', 0) > 60:
+                print(f"Score promising ({insight['confidence_score']}%). Triggering marketplace search...")
                 acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'])
                 insight['acquisition_links'] = acquisition_links
 
-            # 5. Save to DB
+            # 6. Save to DB
             self.db.save_scanned_album(
                 album_id,
                 album_info['title'],

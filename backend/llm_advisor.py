@@ -12,25 +12,29 @@ class LLMAdvisor:
             base_url=self.base_url
         )
 
-    def get_album_insight(self, album_meta, track_scores, taste_centroid):
+    def get_album_insight(self, album_meta, track_scores, cohesion_score):
         """
-        Takes raw similarity math and metadata to generate a human breakdown.
+        Takes raw similarity math to generate a human breakdown.
+        Similarity scores are calculated against the user's nearest taste cluster.
+        Cohesion score (0-1) represents how consistent the album is internally.
         """
         prompt = f"""
-        You are a Vinyl Purchase Advisor. Your goal is to help a user decide if an album is "skip-free" based on their personal taste DNA.
+        You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums that offer a high-value physical listening experience.
 
-        User's Taste Centroid (Average Audio Features of Loved Tracks):
-        {json.dumps(taste_centroid, indent=2)}
+        CONTEXT:
+        Vinyl is for deep, intentional listening. We value "Sonic Cohesion" (an album that stays in its lane) even if it's slightly different from what the user usually hears.
+        We also value "Slow Burns"—albums that might not be an instant 100% match but are consistent enough to grow on the listener.
 
-        Target Album: {album_meta['title']} by {album_meta['artist']}
+        INPUT DATA:
+        - Target Album: {album_meta['title']} by {album_meta['artist']}
+        - Cluster Similarity Scores (0-1.0): {json.dumps(track_scores, indent=2)}
+        - Album Cohesion Score: {cohesion_score:.2f} (1.0 is perfectly consistent, <0.4 is a disjointed mess)
 
-        Analyzed Tracks & Similarity Scores (0-1.0, where 1.0 is perfect match):
-        {json.dumps(track_scores, indent=2)}
-
-        Instructions:
-        1. Evaluate if the album has "filler" tracks (scores below 0.6).
-        2. Provide a "Sonic Breakdown" (2-3 sentences) explaining the verdict.
-        3. Assign a final "Purchase Confidence Score" (0-100%).
+        INSTRUCTIONS:
+        1. Evaluate if the album has "filler" (tracks below 0.5).
+        2. If the Cohesion Score is HIGH (>0.7), treat the album as a "Strong Artistic Statement." Even if similarity scores are in the 0.6 range, these are HIGH-POTENTIAL GROWERS.
+        3. Provide a "Sonic Breakdown" (2-3 sentences). Be honest about the risk, but highlight if the album is a cohesive experience worth buying for the "Slow Burn."
+        4. Final "Purchase Confidence Score" (0-100%).
 
         Response MUST be a valid JSON object with:
         "confidence_score": int,
@@ -42,7 +46,7 @@ class LLMAdvisor:
             response = self.client.chat.completions.create(
                 model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
                 messages=[
-                    {"role": "system", "content": "You are a professional music critic and data analyst."},
+                    {"role": "system", "content": "You are a professional music critic and data analyst specializing in high-commitment physical media."},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"}

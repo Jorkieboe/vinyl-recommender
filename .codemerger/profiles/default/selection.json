@@ -16,10 +16,10 @@
   },
   {
     "path": "requirements.txt",
-    "tokens": 468,
-    "lines": 54,
-    "mtime": 1776846012.0486412,
-    "hash": "ae045fa9a70a0a0fca5661b860f7aface0828169"
+    "tokens": 476,
+    "lines": 55,
+    "mtime": 1776853459.739732,
+    "hash": "8959ffe5e03f3b6bc61aedfdda00dcfda73a2ddd"
   },
   {
     "path": "concept.md"
@@ -40,10 +40,10 @@
   },
   {
     "path": "backend/bridge.py",
-    "tokens": 2145,
-    "lines": 248,
-    "mtime": 1776851850.364761,
-    "hash": "f0ac2b1ef0ce6d1feab4c2e866f7e13064c16226"
+    "tokens": 2181,
+    "lines": 250,
+    "mtime": 1776856201.9594245,
+    "hash": "088ad716e316623810ac47cf607cf8068e53ba7b"
   },
   {
     "path": "backend/main.py",
@@ -124,10 +124,10 @@
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 821,
-    "lines": 94,
-    "mtime": 1776692058.2841978,
-    "hash": "4c4cf779e313bf42347fd0c600bea7876e73ca3e"
+    "tokens": 988,
+    "lines": 98,
+    "mtime": 1776855736.825173,
+    "hash": "9aee1cb6b8058fc465c8803994c1f84ec95dd377"
   },
   {
     "path": ".env",

@@ -1,11 +1,11 @@
 [
   {
     "path": "backend/bridge.py",
-    "tokens": 2145,
+    "tokens": 2181,
     "ignoreTokens": false,
-    "lines": 248,
-    "mtime": 1776851850.364761,
-    "hash": "f0ac2b1ef0ce6d1feab4c2e866f7e13064c16226"
+    "lines": 250,
+    "mtime": 1776856201.9594245,
+    "hash": "088ad716e316623810ac47cf607cf8068e53ba7b"
   },
   {
     "path": "backend/database.py",
@@ -25,8 +25,11 @@
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 821,
-    "ignoreTokens": false
+    "tokens": 988,
+    "ignoreTokens": false,
+    "lines": 98,
+    "mtime": 1776855736.825173,
+    "hash": "9aee1cb6b8058fc465c8803994c1f84ec95dd377"
   },
   {
     "path": "backend/main.py",
@@ -113,11 +116,11 @@
   },
   {
     "path": "requirements.txt",
-    "tokens": 468,
+    "tokens": 476,
     "ignoreTokens": false,
-    "lines": 54,
-    "mtime": 1776846012.0486412,
-    "hash": "ae045fa9a70a0a0fca5661b860f7aface0828169"
+    "lines": 55,
+    "mtime": 1776853459.739732,
+    "hash": "8959ffe5e03f3b6bc61aedfdda00dcfda73a2ddd"
   },
   {
     "path": "version.txt",
@@ -140,9 +143,9 @@
   },
   {
     "path": "backend/profile_engine.py",
-    "tokens": 327,
-    "lines": 37,
-    "mtime": 1776850564.285015,
-    "hash": "cf9bfa70f0c57ec44f3d83041c708d27956752eb"
+    "tokens": 1575,
+    "lines": 159,
+    "mtime": 1776855944.1993494,
+    "hash": "0f8b4e360a65c03ead55f248f5ff73dc6b3cc7e6"
   }
 ]
