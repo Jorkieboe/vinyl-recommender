@@ -127,8 +127,9 @@ class Bridge:
         def analysis_worker():
             print(f"Analyzing album: {track_meta['album']['title']}")
 
-            # 1. Prepare User Taste Clusters
+            # 1. Prepare User Taste Clusters & Global Profile
             all_features = self.db.get_all_features()
+            user_profile = self.db.get_global_profile()
             if not all_features:
                 print("No user preferences found. Please sync first.")
                 return
@@ -147,13 +148,41 @@ class Bridge:
 
                 path = self.client.download_preview(full_t['preview'], full_t['id'])
                 if path:
+                    # A. Librosa Math
                     feats = self.client.analyze_audio(path)
+
+                    # B. CLAP Semantic Tags
+                    clap_res = self.db.get_clap_result(full_t['id'])
+                    if not clap_res:
+                        from backend.clap_analyzer import ClapAnalyzer
+                        if not hasattr(self, 'clap_analyzer'):
+                            self.clap_analyzer = ClapAnalyzer()
+                        clap_res = self.clap_analyzer.analyze(path)
+                        if clap_res:
+                            self.db.save_clap_result(full_t['id'], clap_res)
+
                     if feats:
                         album_feature_history.append(feats)
                         similarity = self.cluster_engine.get_best_similarity(feats)
+
+                        # Determine Tier Name for LLM (Friendly Labels)
+                        tier = "Risky"
+                        if similarity >= 0.80: tier = "Instant Hit"
+                        elif similarity >= 0.70: tier = "Natural Grower"
+                        elif similarity >= 0.60: tier = "Slow Burner"
+
+                        # Extract top semantic tags for LLM context
+                        semantic_tags = {}
+                        if clap_res:
+                            for layer, labels in clap_res.items():
+                                top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
+                                semantic_tags[layer] = [l[0] for l in top_labels]
+
                         track_scores.append({
                             "title": full_t['title'],
-                            "similarity": similarity
+                            "similarity": similarity,
+                            "tier": tier,
+                            "semantic_tags": semantic_tags
                         })
                     os.remove(path)
 
@@ -181,19 +210,10 @@ class Bridge:
                     "horizon": n_horizon
                 })
 
-                # --- Core Decision Logic (Exploration-First Voting System) ---
-                # Weights adjusted to favor albums with strong comfort bases (Anchors)
-                # and discovery potential (Inner Bridges)
                 buy_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 1) + (n_horizon * 0)
-
-                # Total possible votes per tier for normalization
-                # Anchors: 4, Inner: 2, Outer: 3, Horizon: 3
                 total_possible_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 3) + (n_horizon * 3)
-
-                # Calculate percentage of positive evidence
                 calculated_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
 
-                # Hard Gate: No vinyl purchase without at least one instant hook (Anchor)
                 if n_anchors == 0:
                     calculated_score = min(calculated_score, 30)
 
@@ -210,18 +230,22 @@ class Bridge:
             if album_feature_history:
                 self.cluster_engine.generate_taste_map(album_feature_history, track_meta['album']['title'])
 
-            # 4. Get LLM Breakdown
+            # 4. Get LLM Breakdown (Qualitative Analysis only)
             album_info = {
                 "title": track_meta['album']['title'],
                 "artist": track_meta['artist']['name'],
                 "cover_url": track_meta['album'].get('cover_medium', '')
             }
-            insight = self.advisor.get_album_insight(album_info, track_scores, journey_data)
+            insight = self.advisor.get_album_insight(album_info, track_scores, journey_data, user_profile)
 
-            # 5. Marketplace Scraper (Triggered if score > 60 - lowered for potential growers)
+            # Use the Hard Math score for the final result, not the LLM's version
+            final_score = journey_data['calculated_score']
+            insight['calculated_confidence_math'] = final_score
+
+            # 5. Marketplace Scraper (Triggered if score > 60)
             acquisition_links = []
-            if insight.get('confidence_score', 0) > 60:
-                print(f"Score promising ({insight['confidence_score']}%). Triggering marketplace search...")
+            if final_score > 60:
+                print(f"Score promising ({final_score}%). Triggering marketplace search...")
                 acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'])
                 insight['acquisition_links'] = acquisition_links
 
@@ -230,7 +254,7 @@ class Bridge:
                 album_id,
                 album_info['title'],
                 album_info['artist'],
-                insight['confidence_score'],
+                final_score,
                 insight,
                 album_info['cover_url']
             )

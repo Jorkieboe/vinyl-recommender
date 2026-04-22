@@ -12,41 +12,66 @@ class LLMAdvisor:
             base_url=self.base_url
         )
 
-    def get_album_insight(self, album_meta, track_scores, journey_data):
+    def get_album_insight(self, album_meta, track_scores, journey_data, user_profile):
         """
-        Takes raw similarity math to generate a human breakdown.
-        journey_data categorizes tracks into Anchors, Bridges, and Horizon tiers.
+        Takes raw similarity math and CLAP semantic tags to generate a human breakdown.
         """
         prompt = f"""
-        You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums that offer growth.
+        You are a music expert helping someone decide if a vinyl record is worth buying.
+        Vinyl is expensive, so every track needs to be a "keeper."
+
+        YOUR TASTE PROFILE (What you usually love):
+        {json.dumps(user_profile, indent=2)}
+
+        ALBUM TO EVALUATE: {album_meta['title']} by {album_meta['artist']}
+
+        TRACK LIST DATA:
+        {json.dumps(track_scores, indent=2)}
+
+        OVERALL CONFIDENCE SCORE: {journey_data['calculated_score']}%
+
+        CATEGORIES EXPLAINED:
+        - "Instant Hit": Tracks that sound exactly like what you already love. Total comfort.
+        - "Natural Grower": These feel fresh but familiar. You'll likely love them after 1 or 2 listens.
+        - "Slow Burner": A bit different from your usual style. Might take some effort to appreciate.
+        - "Risky": These sound very different from your usual taste. On a vinyl, these are the "skips."
+
+        YOUR TASK:
+        1. Write a "Sonic Breakdown" (2-3 sentences). Compare the tags of the album tracks to the user's taste profile.
+        2. Explain why the score is high or low. (e.g., "This is a safe buy because it's packed with instant hits," or "This is risky because half the album consists of experimental tracks you might skip.")
+        3. Identify any "Filler Tracks" (the ones labeled "Risky") by name.
+
+        Response MUST be a valid JSON object with:
+        "sonic_breakdown": "string",
+        "filler_tracks": ["track_title1", "track_title2"]
+        """
+        prompt = f"""
+        You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums.
+
+        USER SONIC DNA (Top Labels from Loved Tracks):
+        {json.dumps(user_profile, indent=2)}
 
         SONIC JOURNEY THEORY:
-        The best vinyl albums are not just clones of what we already like. They are a journey with distinct stages of challenge:
-        - ANCHORS (>80%): Instant comfort. You already love this sound.
-        - INNER BRIDGES (70-80%): Easy growth. Familiar but fresh; highly likely to be liked within 1-2 listens.
-        - OUTER BRIDGES (60-70%): Challenging expansion. Significant departure from your centers; requires intentional "slow burn" listening.
-        - THE HORIZON (<60%): Experimental risk. Very far from your current DNA; high potential for long-term reward but high risk of "skipping."
-
-        IDEAL MIX: A perfect vinyl should bridge these gaps. If an album jumps straight from Anchors to Horizon without "Inner Bridges," it feels disjointed. If it has too many "Outer Bridges" and no "Inner Bridges," it might be too much of a struggle to get through.
+        - Instant Hit: Instant comfort. Semantic tags should match User DNA closely.
+        - Grower: Easy growth. Some tags match, others introduce fresh but compatible textures.
+        - Experimental: Experimental risk. Tags here are likely far from User DNA (e.g. User likes 'Techno', experimental is 'Classical').
 
         INPUT DATA:
         - Target Album: {album_meta['title']} by {album_meta['artist']}
-        - Track Stats: {json.dumps(journey_data, indent=2)}
-        - Detailed Scores: {json.dumps(track_scores, indent=2)}
+        - Track Analysis (Math + CLAP Semantics): {json.dumps(track_scores, indent=2)}
+        - Summary Stats: {json.dumps(journey_data, indent=2)}
 
         INSTRUCTIONS:
-        1. REVIEW the "Calculated Score" ({journey_data['calculated_score']}%). This score uses an "Exploration-First" weight.
-        2. DATA INTERPRETATION:
-           - Anchors (>80%) provide maximum BUY momentum (4 votes).
-           - Inner Bridges (70-80%) are pure BUY momentum (2 votes), signaling "Safe Exploration."
-           - Outer Bridges (60-70%) provide 1 BUY / 2 NOT BUY (leaning towards risk).
-           - Horizon tracks (<60%) provide 3 NOT BUY (high risk).
-        3. EXPLAIN the "Exploration Potential". If the score is high due to many Inner Bridges, explain that the album is a perfect bridge between their current taste and new discoveries.
-        4. Warn if the album is "Repetitive" (journey_data['is_repetitive'] = true).
+        1. EXPLAIN the tiering using the semantic tags. For "Risky" tracks, explain specifically why they are risky based on their tags compared to User Sonic DNA.
+        2. REVIEW the "Calculated Score" ({journey_data['calculated_score']}%).
+        3. DATA INTERPRETATION:
+           - Anchors: High Buy momentum.
+           - Inner Bridges: Perfect for growth.
+           - Horizon: Risk of a "Skip" track which ruins the vinyl experience.
+        4. Warn if the album is "Repetitive" or if the "Risky" tracks are too jarringly different.
 
         Response MUST be a valid JSON object with:
-        "confidence_score": int (Matches or slightly adjusts the calculated_score),
-        "sonic_breakdown": "string",
+        "sonic_breakdown": "string (Focus on semantic comparisons between DNA and the album tags. Explain WHY the score is what it is)",
         "filler_tracks": ["track_title1", "track_title2"]
         """
 
@@ -54,7 +79,7 @@ class LLMAdvisor:
             response = self.client.chat.completions.create(
                 model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
                 messages=[
-                    {"role": "system", "content": "You are a professional music critic and data analyst specializing in high-commitment physical media."},
+                    {"role": "system", "content": "You are a professional music critic. You provide the verbal explanation for a pre-calculated mathematical score."},
                     {"role": "user", "content": prompt}
                 ],
                 response_format={"type": "json_object"}
@@ -63,8 +88,7 @@ class LLMAdvisor:
         except Exception as e:
             print(f"LLM Error: {e}")
             return {
-                "confidence_score": 0,
-                "sonic_breakdown": "Failed to generate analysis.",
+                "sonic_breakdown": "Analysis failed, but the mathematical score is calculated below.",
                 "filler_tracks": []
             }
 
