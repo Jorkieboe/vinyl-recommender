@@ -105,12 +105,12 @@ class LLMAdvisor:
         Instructions:
         1. Look for items that match the artist and album exactly.
         2. Ensure the item is a Vinyl/LP, not a CD or Digital download.
-        3. Extract the price (in Euros if possible) and the direct product URL.
+        3. Extract the name of the store, the product name, the direct URL, and the price.
         4. If no clear match is found, return an empty list.
 
         Response MUST be a valid JSON object with:
         "links": [
-            {{"site": "string", "price": "string", "url": "string", "status": "In Stock/Out of Stock"}}
+            {{"store": "string", "product": "string", "link": "string", "price": "string"}}
         ]
         """
 

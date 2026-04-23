@@ -15,6 +15,7 @@ class Bridge:
         self.scraper = MarketplaceScraper(self.advisor)
         self.profile_engine = ProfileEngine()
         self.cluster_engine = ClusterEngine(n_clusters=5)
+        self.headless_mode = True
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
@@ -24,6 +25,11 @@ class Bridge:
     def get_default_user(self):
         """Returns the default user ID from environment variables"""
         return os.getenv("DEFAULT_USER", "2529")
+
+    def set_headless_mode(self, enabled):
+        """Toggles whether the scraper browser is visible"""
+        self.headless_mode = not enabled
+        print(f"Headless mode set to: {self.headless_mode}")
 
     def start_initial_sync(self, user_id):
         """
@@ -246,7 +252,7 @@ class Bridge:
             acquisition_links = []
             if final_score > 60:
                 print(f"Score promising ({final_score}%). Triggering marketplace search...")
-                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'])
+                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
                 insight['acquisition_links'] = acquisition_links
 
             # 6. Save to DB
@@ -262,6 +268,11 @@ class Bridge:
 
         threading.Thread(target=analysis_worker, daemon=True).start()
         return {"status": "pending", "message": "Album analysis started", "album_id": album_id}
+
+    def manual_marketplace_search(self, artist, album):
+        """Manually trigger a marketplace search via Google for UI testing"""
+        print(f"Manual marketplace search triggered for: {artist} - {album} (Headless: {self.headless_mode})")
+        return self.scraper.get_links(artist, album, headless=self.headless_mode)
 
     def test_clap_on_track(self, track_id):
         """Tests natural language audio tagging via CLAP for a single track"""

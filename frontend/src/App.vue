@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 const message = ref('Waiting for bridge...')
 const response = ref('')
@@ -17,9 +17,23 @@ const analysisResult = ref(null)
 const activeClap = ref(null)
 const clapResult = ref(null)
 
+// Manual Search Lab State
+const manualSearchArtist = ref('')
+const manualSearchAlbum = ref('')
+const manualSearchResults = ref([])
+const searchLoading = ref(false)
+const showBrowser = ref(false)
+
 let pollInterval = null
 let analysisInterval = null
 let clapInterval = null
+
+// Watch showBrowser to update Python bridge
+watch(showBrowser, (newVal) => {
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.set_headless_mode(newVal)
+  }
+})
 
 const callEcho = async () => {
   if (window.pywebview && window.pywebview.api) {
@@ -102,6 +116,22 @@ const startAnalysisPolling = (albumId) => {
       clearInterval(analysisInterval)
     }
   }, 2000)
+}
+
+const triggerManualSearch = async () => {
+  if (!manualSearchArtist.value || !manualSearchAlbum.value) return
+  searchLoading.value = true
+  manualSearchResults.value = []
+  if (window.pywebview && window.pywebview.api) {
+    try {
+      const res = await window.pywebview.api.manual_marketplace_search(manualSearchArtist.value, manualSearchAlbum.value)
+      manualSearchResults.value = res
+    } catch (err) {
+      console.error("Manual search failed", err)
+    } finally {
+      searchLoading.value = false
+    }
+  }
 }
 
 const testClap = async (trackId) => {
@@ -220,6 +250,56 @@ onUnmounted(() => {
             <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-center">
               <span class="text-gray-500 block text-[10px] uppercase">Tracks</span>
               <span class="text-green-400 text-sm font-bold">{{ trackCount }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Marketplace Test Section -->
+        <section class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold flex items-center">
+              <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+              Marketplace Lab
+            </h2>
+            <label class="flex items-center cursor-pointer group">
+              <span class="text-[9px] uppercase font-bold text-gray-500 mr-2 group-hover:text-orange-400 transition">Show Browser</span>
+              <div class="relative">
+                <input type="checkbox" v-model="showBrowser" class="sr-only" />
+                <div class="w-8 h-4 bg-gray-900 rounded-full border border-gray-700 shadow-inner"></div>
+                <div class="dot absolute w-2 h-2 bg-gray-500 rounded-full left-1 top-1 transition-all duration-300" :class="showBrowser ? 'translate-x-4 bg-orange-500' : ''"></div>
+              </div>
+            </label>
+          </div>
+
+          <p class="text-[10px] text-gray-400 mb-4 uppercase font-bold tracking-wider">Test Search Logic Independently</p>
+          <div class="space-y-3 mb-4">
+            <input
+              v-model="manualSearchArtist"
+              placeholder="Artist Name"
+              class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-xs text-orange-200 focus:outline-none focus:border-orange-500 transition"
+            />
+            <input
+              v-model="manualSearchAlbum"
+              placeholder="Album Title"
+              class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-xs text-orange-200 focus:outline-none focus:border-orange-500 transition"
+            />
+          </div>
+          <button
+            @click="triggerManualSearch"
+            :disabled="searchLoading"
+            class="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-bold py-2 rounded-xl transition duration-300 text-sm"
+          >
+            {{ searchLoading ? 'Searching Google...' : 'Search Dutch Shops' }}
+          </button>
+
+          <div v-if="manualSearchResults.length" class="mt-4 space-y-2 max-h-[300px] overflow-y-auto">
+            <div v-for="item in manualSearchResults" :key="item.link" class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-[10px]">
+              <div class="flex justify-between items-start mb-1">
+                <span class="font-bold text-orange-400 uppercase tracking-tighter">{{ item.store }}</span>
+                <span class="text-green-400 font-mono">{{ item.price }}</span>
+              </div>
+              <p class="text-gray-300 mb-2 font-medium">{{ item.product }}</p>
+              <a :href="item.link" target="_blank" class="text-indigo-400 hover:underline block truncate">{{ item.link }}</a>
             </div>
           </div>
         </section>
@@ -421,6 +501,21 @@ onUnmounted(() => {
             >
               {{ track }}
             </span>
+          </div>
+        </div>
+
+        <!-- Render Acquisition Links in Verdict -->
+        <div v-if="analysisResult.analysis_json.acquisition_links?.length" class="space-y-3">
+          <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">
+            Marketplace Matches
+          </h4>
+          <div v-for="link in analysisResult.analysis_json.acquisition_links" :key="link.link" class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-[10px]">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-bold text-green-400 uppercase">{{ link.store }}</span>
+              <span class="font-mono">{{ link.price }}</span>
+            </div>
+            <p class="text-gray-400 truncate mb-1">{{ link.product }}</p>
+            <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
           </div>
         </div>
 

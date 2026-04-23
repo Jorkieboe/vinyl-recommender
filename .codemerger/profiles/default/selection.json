@@ -16,10 +16,10 @@
   },
   {
     "path": "requirements.txt",
-    "tokens": 476,
-    "lines": 55,
-    "mtime": 1776853459.739732,
-    "hash": "8959ffe5e03f3b6bc61aedfdda00dcfda73a2ddd"
+    "tokens": 481,
+    "lines": 56,
+    "mtime": 1776937783.7441864,
+    "hash": "c5cf9e8d46feb339996dd737a41dfa82d1df3b7f"
   },
   {
     "path": "concept.md"
@@ -138,9 +138,9 @@
   },
   {
     "path": "backend/scraper.py",
-    "tokens": 441,
-    "lines": 57,
-    "mtime": 1776692058.3720663,
-    "hash": "c238f6210c698189bee294abd6d1be34a9febbd9"
+    "tokens": 802,
+    "lines": 93,
+    "mtime": 1776937783.5653937,
+    "hash": "765881abf9ef40ea9e19f2d618f7baf72e9e661d"
   }
 ]

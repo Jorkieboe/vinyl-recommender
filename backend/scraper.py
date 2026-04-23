@@ -1,57 +1,93 @@
 from playwright.sync_api import sync_playwright
+try:
+    from playwright_stealth import stealth_sync
+except ImportError:
+    stealth_sync = None
 import urllib.parse
+import time
+import random
 
 class MarketplaceScraper:
     def __init__(self, advisor):
         self.advisor = advisor
 
-    def search_velvet(self, artist, album):
-        query = urllib.parse.quote(f"{artist} {album} vinyl")
-        url = f"https://www.velvetmusic.nl/search/?q={query}"
-        return self._scrape_site(url, "Velvet.nl")
+    def search_google(self, artist, album, headless=False):
+        """Executes a Google search for Dutch vinyl shops and visits top results"""
+        query = urllib.parse.quote(f"{artist} {album} vinyl nl")
+        url = f"https://www.google.com/search?q={query}&hl=nl"
 
-    def search_bol(self, artist, album):
-        query = urllib.parse.quote(f"{artist} {album} vinyl")
-        url = f"https://www.bol.com/nl/nl/s/?searchtext={query}"
-        return self._scrape_site(url, "Bol.com")
-
-    def _scrape_site(self, url, site_name):
+        results = []
         try:
             with sync_playwright() as p:
-                # Note: Requires 'playwright install chromium'
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
+                print(f"Launching scraper (Headless={headless}) for Google Search: {url}")
+                browser = p.chromium.launch(headless=headless, args=["--disable-blink-features=AutomationControlled"])
+
+                # Use a modern user agent to avoid bot detection
+                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                context = browser.new_context(user_agent=user_agent)
+                page = context.new_page()
+
+                # Apply stealth if available
+                if stealth_sync:
+                    stealth_sync(page)
+
+                # Small random delay to simulate human lead-in
+                time.sleep(random.uniform(1.0, 2.5))
+
                 page.goto(url, wait_until="networkidle", timeout=30000)
 
-                # Extract text content to help LLM parse it
-                # We take a snapshot of the body text to avoid huge HTML payloads
-                content = page.evaluate("() => document.body.innerText")
+                # Handle cookie consent if it appears (common in NL)
+                try:
+                    # Generic selector for 'Accept All' buttons in Dutch
+                    consent_button = page.locator('button:has-text("Alles accepteren"), button:has-text("Akkoord")').first
+                    if consent_button.is_visible(timeout=3000):
+                        time.sleep(random.uniform(0.5, 1.2))
+                        consent_button.click()
+                except:
+                    pass
+
+                # Extract top organic shop links from Google results
+                links = page.evaluate("""() => {
+                    const anchors = Array.from(document.querySelectorAll('#search a'));
+                    return anchors.map(a => a.href)
+                        .filter(href => {
+                            try {
+                                const u = new URL(href);
+                                return !u.hostname.includes('google') &&
+                                       !u.hostname.includes('youtube') &&
+                                       href.startsWith('http');
+                            } catch { return false; }
+                        })
+                        .filter((v, i, a) => a.indexOf(v) === i) // unique only
+                        .slice(0, 3);
+                }""")
+
+                # Deep scrape the actual product pages to find price/stock details
+                for link in links:
+                    print(f"Scraping product page: {link}")
+                    try:
+                        page.goto(link, wait_until="domcontentloaded", timeout=15000)
+                        # Extract raw text content for the LLM to parse
+                        text = page.evaluate("() => document.body.innerText")
+                        results.append({
+                            "site": link.split('/')[2],
+                            "url": link,
+                            "raw_content": text[:6000] # Truncate to save tokens while keeping context
+                        })
+                    except Exception as e:
+                        print(f"Failed to scrape {link}: {e}")
+
                 browser.close()
-
-                return {
-                    "site": site_name,
-                    "url": url,
-                    "raw_content": content[:8000] # Truncate to save tokens
-                }
         except Exception as e:
-            print(f"Scraper error for {site_name}: {e}")
-            return None
+            print(f"Google Scraper encountered an error: {e}")
 
-    def get_links(self, artist, album):
-        """Orchestrates multiple scrapers and uses LLM to parse results"""
-        raw_data = []
+        return results
 
-        # Velvet.nl
-        v_res = self.search_velvet(artist, album)
-        if v_res:
-            raw_data.append(v_res)
-
-        # Bol.com
-        b_res = self.search_bol(artist, album)
-        if b_res:
-            raw_data.append(b_res)
-
+    def get_links(self, artist, album, headless=True):
+        """Orchestrates Google search and uses LLM to extract JSON structured store data"""
+        raw_data = self.search_google(artist, album, headless=headless)
         if not raw_data:
             return []
 
+        print("Sending raw marketplace data to LLM for parsing...")
         return self.advisor.parse_scraper_results(artist, album, raw_data)

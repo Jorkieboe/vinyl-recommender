@@ -53,3 +53,4 @@ accelerate
 torch
 torchaudio
 PyYAML
+playwright-stealth

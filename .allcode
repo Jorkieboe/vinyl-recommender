@@ -1,0 +1,263 @@
+{
+  "_info": "For information about this file, see: https://github.com/DrSiemer/CodeMerger/",
+  "project_name": "vinyl-recommender",
+  "project_color": "#E67E22",
+  "project_font_color": "light",
+  "active_profile": "Default",
+  "profiles": {
+    "Default": {
+      "selected_files": [
+        {
+          "path": "README.md"
+        },
+        {
+          "path": "go.bat"
+        },
+        {
+          "path": "llm.md"
+        },
+        {
+          "path": "release.bat"
+        },
+        {
+          "path": "version.txt"
+        },
+        {
+          "path": "requirements.txt"
+        },
+        {
+          "path": "concept.md"
+        },
+        {
+          "path": "backend/__init__.py",
+          "tokens": 0,
+          "lines": 1,
+          "mtime": 1776686920.8494577,
+          "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        },
+        {
+          "path": "backend/bridge.py",
+          "tokens": 2936,
+          "lines": 322,
+          "mtime": 1776937501.0706508,
+          "hash": "b727deb817fec57e102e45201362383a57e2b390"
+        },
+        {
+          "path": "backend/main.py",
+          "tokens": 283,
+          "lines": 44,
+          "mtime": 1776686920.8933597,
+          "hash": "8a271a0d57fd19d047b2ebc66a650cf58af84933"
+        },
+        {
+          "path": "frontend/index.html",
+          "tokens": 94,
+          "lines": 12,
+          "mtime": 1776686920.924847,
+          "hash": "631dc44bf6f22ada21711aa345bc20c48376b49b"
+        },
+        {
+          "path": "frontend/package.json",
+          "tokens": 157,
+          "lines": 21,
+          "mtime": 1776686920.9535007,
+          "hash": "d377942bccc0dd657f695a0aa4821cf4bb9ecca3"
+        },
+        {
+          "path": "frontend/postcss.config.js",
+          "tokens": 21,
+          "lines": 6,
+          "mtime": 1776686920.978746,
+          "hash": "c292eecab05ba16681c83ec822c2e5cdc8e41c84"
+        },
+        {
+          "path": "frontend/src/App.vue",
+          "tokens": 5882,
+          "lines": 564,
+          "mtime": 1776937501.1233835,
+          "hash": "c5c1ac9df7d8adae488e11415dea12f19f960041"
+        },
+        {
+          "path": "frontend/src/main.js",
+          "tokens": 29,
+          "lines": 5,
+          "mtime": 1776686921.0485618,
+          "hash": "0f12e357eee62dfa08038cc640cc8a66e462cae9"
+        },
+        {
+          "path": "frontend/src/style.css",
+          "tokens": 15,
+          "lines": 3,
+          "mtime": 1776686921.0769818,
+          "hash": "2d05991c511e99edc084ff6589d7bec426ba620e"
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "tokens": 58,
+          "lines": 11,
+          "mtime": 1776686921.0987265,
+          "hash": "3b8f1f8991ecb0379971aa1a699daec65a126b68"
+        },
+        {
+          "path": "frontend/vite.config.js",
+          "tokens": 61,
+          "lines": 11,
+          "mtime": 1776686921.1249228,
+          "hash": "64203672e35571231f3a236b1f72d55a98c5ba18"
+        },
+        {
+          "path": ".codemerger/profiles/default/files.json",
+          "tokens": 232,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/default/instructions.json",
+          "tokens": 324,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/default/selection.json",
+          "tokens": 1342,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/default/ui.json",
+          "tokens": 15,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/default/visualizer.json",
+          "tokens": 1,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/no-todo/files.json",
+          "tokens": 214,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/no-todo/instructions.json",
+          "tokens": 280,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/no-todo/selection.json",
+          "tokens": 1135,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/no-todo/ui.json",
+          "tokens": 16,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/profiles/no-todo/visualizer.json",
+          "tokens": 1,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/config.json",
+          "tokens": 44,
+          "ignoreTokens": false
+        },
+        {
+          "path": ".codemerger/hi.txt",
+          "tokens": 143,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/clap_analyzer.py",
+          "tokens": 576,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/clap_prompts.yaml",
+          "tokens": 582,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/database.py",
+          "tokens": 1227,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/deezer_client.py",
+          "tokens": 756,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/llm_advisor.py",
+          "tokens": 1344,
+          "ignoreTokens": false,
+          "lines": 130,
+          "mtime": 1776937327.8239667,
+          "hash": "108b75dff41f19e98e022377418af1e2e2ec3d72"
+        },
+        {
+          "path": "backend/profile_engine.py",
+          "tokens": 1575,
+          "ignoreTokens": false
+        },
+        {
+          "path": "backend/scraper.py",
+          "tokens": 632,
+          "ignoreTokens": false,
+          "lines": 74,
+          "mtime": 1776937501.0967915,
+          "hash": "c5b7d8e646ca369568b9a53cff4acaaaf9a44596"
+        },
+        {
+          "path": "project-starter.json",
+          "tokens": 8891,
+          "ignoreTokens": false
+        }
+      ],
+      "total_tokens": 28866,
+      "intro_text": "We are working on an AI-powered desktop agent that analyzes whole-album audio features to ensure vinyl purchases are \"skip-free\" and align with the user's personal taste.\n\nContinue work on the plan laid out in `todo.md`. If a bug is reported, fix it first. ONLY output `todo.md` (in full, without omissions) when explicitly updating checkbox status.",
+      "outro_text": "DO:\n- always return full code, unless a change is VERY small (a single line or a short connected segment)\n- make sure empty lines are actually empty: avoid generating lines of spaces or tabs\nalways place closing triple backticks (```) on their own, new line\n\nDo NOT:\n- remove my original comments\n- return diff files\n- use numbered steps (e.g., \"1.\") in comments\n- use <summary> tags\n- end comments with dots (unless you are using multiple sentences)\n- call something \"final\" or \"definitive\"; it usually isn't\n- use double newlines between code\n- add comments if the code itself makes it pretty clear what it does\n\nUse the following format if you want to add temporary notification comments: `// [KEYWORD] Comment` (e.g., `[FIX] Now using correct value`, `[MODIFIED] Improved algorithm`). These comments are transient and exist only to show the user what you've changed. If you find them in code you are reviewing, remove these comments as the user will have already seen them.",
+      "expanded_dirs": [],
+      "unknown_files": []
+    }
+  },
+  "known_files": [
+    ".codemerger/config.json",
+    ".codemerger/hi.txt",
+    ".codemerger/profiles/default/files.json",
+    ".codemerger/profiles/default/instructions.json",
+    ".codemerger/profiles/default/selection.json",
+    ".codemerger/profiles/default/ui.json",
+    ".codemerger/profiles/default/visualizer.json",
+    ".codemerger/profiles/no-todo/files.json",
+    ".codemerger/profiles/no-todo/instructions.json",
+    ".codemerger/profiles/no-todo/selection.json",
+    ".codemerger/profiles/no-todo/ui.json",
+    ".codemerger/profiles/no-todo/visualizer.json",
+    "README.md",
+    "backend/__init__.py",
+    "backend/bridge.py",
+    "backend/clap_analyzer.py",
+    "backend/clap_prompts.yaml",
+    "backend/database.py",
+    "backend/deezer_client.py",
+    "backend/llm_advisor.py",
+    "backend/main.py",
+    "backend/profile_engine.py",
+    "backend/scraper.py",
+    "concept.md",
+    "frontend/index.html",
+    "frontend/package.json",
+    "frontend/postcss.config.js",
+    "frontend/src/App.vue",
+    "frontend/src/main.js",
+    "frontend/src/style.css",
+    "frontend/tailwind.config.js",
+    "frontend/vite.config.js",
+    "go.bat",
+    "llm.md",
+    "project-starter.json",
+    "release.bat",
+    "requirements.txt",
+    "todo.md",
+    "version.txt"
+  ]
+}
