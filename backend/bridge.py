@@ -1,6 +1,7 @@
 import threading
 import numpy as np
 import os
+import re
 from backend.deezer_client import DeezerClient
 from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
@@ -31,6 +32,23 @@ class Bridge:
         self.headless_mode = not enabled
         print(f"Headless mode set to: {self.headless_mode}")
 
+    def _count_unique_tracks(self, album_id):
+        """Fetches album tracks and counts unique songs by cleaning titles"""
+        tracks = self.client.get_album_tracks(album_id)
+        if not tracks:
+            return 0
+
+        unique_titles = set()
+        for t in tracks:
+            # Simple cleaning: remove common version suffixes and lowercase
+            clean = t['title'].lower()
+            clean = re.sub(r'\(.*?\)', '', clean) # Remove (Remastered), etc
+            clean = re.sub(r'\[.*?\]', '', clean) # Remove [Edit], etc
+            clean = re.split(r' - ', clean)[0]    # Split on " - " and take first part
+            unique_titles.add(clean.strip())
+
+        return len(unique_titles)
+
     def start_initial_sync(self, user_id):
         """
         Starts the background process to fetch loved tracks,
@@ -40,17 +58,24 @@ class Bridge:
             print(f"Starting sync for user: {user_id}")
             tracks = self.client.get_loved_tracks(user_id)
 
+            album_counts = {} # Cache counts during sync
+
             for track in tracks:
                 track_data = self.client.get_track(track['id'])
                 if not track_data or not track_data.get('preview'):
                     continue
 
+                album_id = track_data.get('album', {}).get('id')
+                if album_id and album_id not in album_counts:
+                    album_counts[album_id] = self._count_unique_tracks(album_id)
+
+                unique_count = album_counts.get(album_id, 0)
                 needs_features = not self.db.get_track_preference(track['id'])
                 needs_clap = not self.db.get_clap_result(track['id'])
 
                 # Consolidate download to one single session per track
                 if needs_features or needs_clap:
-                    print(f"Syncing {track_data['title']}...")
+                    print(f"Syncing {track_data['title']} (Album Size: {unique_count})...")
                     preview_path = self.client.download_preview(track_data['preview'], track_data['id'])
                     if not preview_path:
                         continue
@@ -61,7 +86,7 @@ class Bridge:
                             features = self.client.analyze_audio(preview_path)
                             if features:
                                 cover_url = track_data.get('album', {}).get('cover_medium', '')
-                                self.db.save_track_preference(track_data, features, cover_url)
+                                self.db.save_track_preference(track_data, features, cover_url, album_track_count=unique_count)
 
                         # 2. CLAP AI Semantic Tagging
                         if needs_clap:
@@ -107,8 +132,8 @@ class Bridge:
         return {"count": count}
 
     def get_synced_tracks(self):
-        """Returns all synced tracks from the database"""
-        return self.db.get_all_synced_tracks()
+        """Returns unique albums (with at least 3 tracks) found via loved tracks"""
+        return self.db.get_all_synced_albums(min_tracks=3)
 
     def get_album_analysis(self, album_id):
         """Returns cached analysis for an album if it exists"""

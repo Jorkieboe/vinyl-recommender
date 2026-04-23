@@ -1,19 +1,19 @@
 [
   {
     "path": "backend/bridge.py",
-    "tokens": 2803,
+    "tokens": 3195,
     "ignoreTokens": false,
-    "lines": 311,
-    "mtime": 1776863356.2009401,
-    "hash": "71e0149164bd9e8f9e5873b3888bcc0ab76de381"
+    "lines": 347,
+    "mtime": 1776939240.4835289,
+    "hash": "bb5eae4ab3e46b5e415479de2af11d3cf7a5c059"
   },
   {
     "path": "backend/database.py",
-    "tokens": 1227,
+    "tokens": 1334,
     "ignoreTokens": false,
-    "lines": 178,
-    "mtime": 1776850567.3209906,
-    "hash": "04d7909a93cd032542b028bd49869cfc02b950d4"
+    "lines": 189,
+    "mtime": 1776939240.4352374,
+    "hash": "f0b3f8353c1b3bd96962a79285e8eaa1e8d149dd"
   },
   {
     "path": "backend/deezer_client.py",
@@ -46,11 +46,11 @@
   },
   {
     "path": "frontend/src/App.vue",
-    "tokens": 5821,
+    "tokens": 5913,
     "ignoreTokens": false,
-    "lines": 492,
-    "mtime": 1776851078.332842,
-    "hash": "4d578a45bf4d8af9188640554a61ce5020882b78"
+    "lines": 564,
+    "mtime": 1776939240.5377724,
+    "hash": "6b8a21fdc0c185993877f54374a7ffee8ec908b9"
   },
   {
     "path": "frontend/src/main.js",

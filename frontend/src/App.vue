@@ -342,38 +342,38 @@ onUnmounted(() => {
         </section>
       </div>
 
-      <!-- Center Column: Loved Tracks Dashboard -->
+      <!-- Center Column: Loved Albums Dashboard -->
       <div class="lg:col-span-1">
         <section class="bg-gray-800 rounded-2xl shadow-xl border border-gray-700 overflow-hidden flex flex-col h-[600px]">
           <div class="p-6 border-b border-gray-700">
-            <h2 class="text-lg font-bold">Your Loved Tracks</h2>
-            <p class="text-xs text-gray-400">Click to evaluate full album suitability.</p>
+            <h2 class="text-lg font-bold">Your Loved Albums</h2>
+            <p class="text-xs text-gray-400">Qualified albums (3+ songs) from your favorites.</p>
           </div>
           <div class="flex-1 overflow-y-auto p-4 space-y-2">
-            <div v-for="track in syncedTracks" :key="track.id"
+            <div v-for="album in syncedTracks" :key="album.album_id"
                  class="group bg-gray-900/40 hover:bg-gray-700 p-3 rounded-xl border border-gray-700/50 transition cursor-pointer flex items-center"
-                 @click="analyzeAlbum(track.id)">
-              <img :src="track.cover" class="w-10 h-10 rounded-lg mr-3 shadow-lg group-hover:scale-105 transition" v-if="track.cover" />
+                 @click="analyzeAlbum(album.sample_track_id)">
+              <img :src="album.cover" class="w-10 h-10 rounded-lg mr-3 shadow-lg group-hover:scale-105 transition" v-if="album.cover" />
               <div class="flex-1 min-w-0">
-                <p class="font-bold text-sm truncate group-hover:text-indigo-400 transition">{{ track.title }}</p>
-                <p class="text-[10px] text-gray-500 truncate">{{ track.artist }} • {{ track.album }}</p>
+                <p class="font-bold text-sm truncate group-hover:text-indigo-400 transition">{{ album.title }}</p>
+                <p class="text-[10px] text-gray-500 truncate">{{ album.artist }}</p>
               </div>
 
-              <!-- CLAP AI Tagging Test Button -->
-              <button @click.stop="testClap(track.id)" title="AI Audio Tagging Test" class="ml-2 bg-pink-600/20 group-hover:bg-pink-600 text-pink-400 group-hover:text-white p-2 rounded-lg transition">
+              <!-- CLAP AI Tagging Test Button (Uses sample track) -->
+              <button @click.stop="testClap(album.sample_track_id)" title="Analyze Sonic Profile" class="ml-2 bg-pink-600/20 group-hover:bg-pink-600 text-pink-400 group-hover:text-white p-2 rounded-lg transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </button>
 
-              <button class="ml-2 bg-indigo-600/20 group-hover:bg-indigo-600 text-indigo-400 group-hover:text-white p-2 rounded-lg transition" title="Evaluate Full Album">
+              <button class="ml-2 bg-indigo-600/20 group-hover:bg-indigo-600 text-indigo-400 group-hover:text-white p-2 rounded-lg transition" title="Audit Full Album Compatibility">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-            <div v-if="syncedTracks.length === 0" class="text-center py-12 text-gray-500 italic text-sm">
-              No tracks synced yet.
+            <div v-if="syncedTracks.length === 0" class="text-center py-12 text-gray-500 italic text-sm px-4">
+              Sync loved tracks to find eligible albums. Singles and EPs (&lt;3 songs) are used for DNA only.
             </div>
           </div>
         </section>

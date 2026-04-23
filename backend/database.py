@@ -20,9 +20,11 @@ class Database:
                     track_id INTEGER PRIMARY KEY,
                     title TEXT,
                     artist TEXT,
+                    album_id INTEGER,
                     album_title TEXT,
                     cover_url TEXT,
-                    features_json TEXT
+                    features_json TEXT,
+                    album_track_count INTEGER
                 )
             ''')
 
@@ -90,20 +92,22 @@ class Database:
             cursor.execute('SELECT results_json FROM clap_results')
             return [json.loads(row[0]) for row in cursor.fetchall()]
 
-    def save_track_preference(self, track_meta, features, cover_url):
+    def save_track_preference(self, track_meta, features, cover_url, album_track_count=0):
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT OR REPLACE INTO user_preferences
-                (track_id, title, artist, album_title, cover_url, features_json)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (track_id, title, artist, album_id, album_title, cover_url, features_json, album_track_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 track_meta['id'],
                 track_meta['title'],
                 track_meta['artist']['name'],
-                track_meta['album']['title'],
+                track_meta.get('album', {}).get('id'),
+                track_meta.get('album', {}).get('title'),
                 cover_url,
-                json.dumps(features)
+                json.dumps(features),
+                album_track_count
             ))
             conn.commit()
 
@@ -119,12 +123,19 @@ class Database:
             cursor.execute('SELECT COUNT(*) FROM user_preferences')
             return cursor.fetchone()[0]
 
-    def get_all_synced_tracks(self):
+    def get_all_synced_albums(self, min_tracks=3):
+        """Returns unique albums that meet the track count threshold"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT track_id, title, artist, album_title, cover_url FROM user_preferences')
+            # Group by album_id to show unique albums in the dashboard
+            cursor.execute('''
+                SELECT album_id, album_title, artist, cover_url, track_id
+                FROM user_preferences
+                WHERE album_track_count >= ?
+                GROUP BY album_id
+            ''', (min_tracks,))
             rows = cursor.fetchall()
-            return [{"id": r[0], "title": r[1], "artist": r[2], "album": r[3], "cover": r[4]} for r in rows]
+            return [{"album_id": r[0], "title": r[1], "artist": r[2], "cover": r[3], "sample_track_id": r[4]} for r in rows]
 
     def get_all_features(self):
         with self.get_connection() as conn:

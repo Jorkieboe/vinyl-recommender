@@ -33,5 +33,5 @@
     "backend/clap_prompts.yaml",
     "backend/profile_engine.py"
   ],
-  "total_tokens": 15452
+  "total_tokens": 16043
 }
