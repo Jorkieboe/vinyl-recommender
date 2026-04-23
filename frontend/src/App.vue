@@ -471,7 +471,7 @@ onUnmounted(() => {
       <div
         v-else-if="analysisResult"
         class="space-y-6"
-        :key="analysisResult.album_id + '_' + (analysisResult.analysis_json.acquisition_links?.length || 0)"
+        :key="analysisResult.album_id + '_' + analysisResult.analysis_json.is_complete + '_' + (analysisResult.analysis_json.acquisition_links?.length || 0)"
       >
 
         <h2 class="text-lg font-bold mb-2 flex items-center">
@@ -524,17 +524,27 @@ onUnmounted(() => {
         </div>
 
         <!-- Render Acquisition Links in Verdict -->
-        <div v-if="analysisResult.analysis_json.acquisition_links?.length" class="space-y-3">
-          <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">
+        <div v-if="analysisResult.confidence_score > 60" class="space-y-3">
+          <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest flex justify-between items-center">
             Marketplace Matches
+            <span v-if="!analysisResult.analysis_json.is_complete" class="animate-pulse text-orange-400 normal-case font-medium">Searching Dutch shops...</span>
           </h4>
-          <div v-for="link in analysisResult.analysis_json.acquisition_links" :key="link.link" class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-[10px]">
-            <div class="flex justify-between items-start mb-1">
-              <span class="font-bold text-green-400 uppercase">{{ link.store }}</span>
-              <span class="font-mono">{{ link.price }}</span>
+
+          <div v-if="analysisResult.analysis_json.acquisition_links?.length" class="space-y-2">
+            <div v-for="link in analysisResult.analysis_json.acquisition_links" :key="link.link" class="bg-gray-900/50 p-3 rounded-xl border border-gray-700 text-[10px]">
+              <div class="flex justify-between items-start mb-1">
+                <span class="font-bold text-green-400 uppercase">{{ link.store }}</span>
+                <span class="font-mono">{{ link.price }}</span>
+              </div>
+              <p class="text-gray-400 truncate mb-1">{{ link.product }}</p>
+              <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
             </div>
-            <p class="text-gray-400 truncate mb-1">{{ link.product }}</p>
-            <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
+          </div>
+
+          <!-- Empty State: Show only when search is finished and list is empty -->
+          <div v-else-if="analysisResult.analysis_json.is_complete" class="bg-gray-900/50 p-6 rounded-xl border border-dashed border-gray-700 text-center">
+            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">No direct matches found</p>
+            <p class="text-[9px] text-gray-600 italic">This record might be out of stock at tracked retailers.</p>
           </div>
         </div>
 
