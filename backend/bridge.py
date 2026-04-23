@@ -7,6 +7,7 @@ from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
 from backend.scraper import MarketplaceScraper
 from backend.profile_engine import ProfileEngine, ClusterEngine
+from backend.logger import logger
 
 class Bridge:
     def __init__(self):
@@ -16,11 +17,11 @@ class Bridge:
         self.scraper = MarketplaceScraper(self.advisor)
         self.profile_engine = ProfileEngine()
         self.cluster_engine = ClusterEngine(n_clusters=5)
-        self.headless_mode = True
+        self.headless_mode = False
 
     def echo(self, text):
         """Simple echo function to test the bridge"""
-        print(f"JS call to echo: {text}")
+        logger.sync(f"JS call to echo: {text}")
         return f"Python received: {text}"
 
     def get_default_user(self):
@@ -30,7 +31,7 @@ class Bridge:
     def set_headless_mode(self, enabled):
         """Toggles whether the scraper browser is visible"""
         self.headless_mode = not enabled
-        print(f"Headless mode set to: {self.headless_mode}")
+        logger.scrape(f"Headless mode set to: {self.headless_mode}")
 
     def _count_unique_tracks(self, album_id):
         """Fetches album tracks and counts unique songs by cleaning titles"""
@@ -55,7 +56,7 @@ class Bridge:
         extract audio features, and perform CLAP analysis.
         """
         def sync_worker():
-            print(f"Starting sync for user: {user_id}")
+            logger.sync(f"Starting sync for user: {user_id}")
             tracks = self.client.get_loved_tracks(user_id)
 
             album_counts = {} # Cache counts during sync
@@ -75,7 +76,7 @@ class Bridge:
 
                 # Consolidate download to one single session per track
                 if needs_features or needs_clap:
-                    print(f"Syncing {track_data['title']} (Album Size: {unique_count})...")
+                    logger.sync(f"Syncing {track_data['title']} (Album Size: {unique_count})...")
                     preview_path = self.client.download_preview(track_data['preview'], track_data['id'])
                     if not preview_path:
                         continue
@@ -98,13 +99,13 @@ class Bridge:
                             if results:
                                 self.db.save_clap_result(track['id'], results)
                     except Exception as e:
-                        print(f"Sync Error for {track_data['title']}: {e}")
+                        logger.error(f"Sync Error for {track_data['title']}: {e}")
                     finally:
                         if os.path.exists(preview_path):
                             os.remove(preview_path)
 
             # 3. Finalize Global Profile via RRF
-            print("Sync complete. Generating global Sonic DNA Profile...")
+            logger.result("Sync complete. Generating global Sonic DNA Profile...")
             self.recalculate_user_profile()
 
         threading.Thread(target=sync_worker, daemon=True).start()
@@ -156,13 +157,13 @@ class Bridge:
             return {"status": "success", "data": cached}
 
         def analysis_worker():
-            print(f"Analyzing album: {track_meta['album']['title']}")
+            logger.analysis(f"Analyzing album: {track_meta['album']['title']}")
 
             # 1. Prepare User Taste Clusters & Global Profile
             all_features = self.db.get_all_features()
             user_profile = self.db.get_global_profile()
             if not all_features:
-                print("No user preferences found. Please sync first.")
+                logger.warning("No user preferences found. Please sync first.")
                 return
 
             self.cluster_engine.fit_clusters(all_features)
@@ -273,14 +274,10 @@ class Bridge:
             final_score = journey_data['calculated_score']
             insight['calculated_confidence_math'] = final_score
 
-            # 5. Marketplace Scraper (Triggered if score > 60)
-            acquisition_links = []
-            if final_score > 60:
-                print(f"Score promising ({final_score}%). Triggering marketplace search...")
-                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
-                insight['acquisition_links'] = acquisition_links
+            # 5. Intermediate Save (Show breakdown to user immediately)
+            # Mark as not complete if we intend to scrape
+            insight['is_complete'] = False if final_score > 60 else True
 
-            # 6. Save to DB
             self.db.save_scanned_album(
                 album_id,
                 album_info['title'],
@@ -289,14 +286,33 @@ class Bridge:
                 insight,
                 album_info['cover_url']
             )
-            print(f"Analysis complete for {album_info['title']}")
+
+            # 6. Marketplace Scraper (Triggered if score > 60)
+            if final_score > 60:
+                logger.scrape(f"Score promising ({final_score}%). Triggering marketplace search...")
+                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
+
+                # Update insight with links and mark as complete
+                insight['acquisition_links'] = acquisition_links
+                insight['is_complete'] = True
+
+                self.db.save_scanned_album(
+                    album_id,
+                    album_info['title'],
+                    album_info['artist'],
+                    final_score,
+                    insight,
+                    album_info['cover_url']
+                )
+
+            logger.result(f"Analysis complete for {album_info['title']}")
 
         threading.Thread(target=analysis_worker, daemon=True).start()
         return {"status": "pending", "message": "Album analysis started", "album_id": album_id}
 
     def manual_marketplace_search(self, artist, album):
         """Manually trigger a marketplace search via Google for UI testing"""
-        print(f"Manual marketplace search triggered for: {artist} - {album} (Headless: {self.headless_mode})")
+        logger.scrape(f"Manual marketplace search triggered for: {artist} - {album} (Headless: {self.headless_mode})")
         return self.scraper.get_links(artist, album, headless=self.headless_mode)
 
     def test_clap_on_track(self, track_id):
@@ -311,7 +327,7 @@ class Bridge:
             return cached_res
 
         def worker():
-            print(f"Starting CLAP analysis for track {track_id}")
+            logger.audio(f"Starting CLAP analysis for track {track_id}")
             path = self.client.download_preview(track_meta['preview'], track_meta['id'])
             if path:
                 try:
@@ -323,9 +339,9 @@ class Bridge:
                     results = self.clap_analyzer.analyze(path)
                     if results:
                         self.db.save_clap_result(track_id, results)
-                        print(f"CLAP Analysis complete for {track_meta['title']}")
+                        logger.result(f"CLAP Analysis complete for {track_meta['title']}")
                 except Exception as e:
-                    print(f"CLAP Error: {e}")
+                    logger.error(f"CLAP Error: {e}")
                 finally:
                     if os.path.exists(path):
                         os.remove(path)

@@ -4,10 +4,11 @@ import shutil
 from dotenv import load_dotenv
 from backend.bridge import Bridge
 from backend.database import Database
+from backend.logger import logger
 
 def check_ffmpeg():
     if not shutil.which('ffmpeg'):
-        print("WARNING: ffmpeg not found. Librosa analysis will fail.")
+        logger.warning("WARNING: ffmpeg not found. Librosa analysis will fail.")
         return False
     return True
 
@@ -33,7 +34,7 @@ def main():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         url = os.path.join(current_dir, '..', 'frontend', 'dist', 'index.html')
         if not os.path.exists(url):
-            print(f"Error: Production build not found at {url}")
+            logger.error(f"Error: Production build not found at {url}")
             # Fallback to dev for safety during early stages
             url = 'http://localhost:5173'
 

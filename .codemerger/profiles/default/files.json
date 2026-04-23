@@ -9,6 +9,7 @@
     "backend/database.py",
     "backend/deezer_client.py",
     "backend/llm_advisor.py",
+    "backend/logger.py",
     "backend/main.py",
     "backend/profile_engine.py",
     "backend/scraper.py",
@@ -31,7 +32,8 @@
   ],
   "unknown_files": [
     "backend/clap_prompts.yaml",
+    "backend/logger.py",
     "backend/profile_engine.py"
   ],
-  "total_tokens": 16043
+  "total_tokens": 15905
 }

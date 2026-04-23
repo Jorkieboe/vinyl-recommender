@@ -120,7 +120,7 @@ goto :Usage
         nvidia-smi >nul 2>nul
         if !errorlevel! equ 0 (
             echo [INFO] NVIDIA GPU detected. Installing PyTorch with CUDA support...
-            uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+            uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
         ) else (
             echo [INFO] No NVIDIA GPU detected. Installing CPU-only PyTorch...
             uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu

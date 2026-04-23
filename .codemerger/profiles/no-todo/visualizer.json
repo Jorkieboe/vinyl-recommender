@@ -1,1 +1,373 @@
-null
+{
+  "tree": {
+    "name": "Vinyl Recommender System Architecture",
+    "description": "A sophisticated **hybrid desktop application** designed to bridge the gap between digital streaming and physical vinyl collecting. The system is split into a **Python-based analytical backend**\u2014leveraging AI, audio DSP, and web automation\u2014and a **Vue.js-powered reactive frontend**. Communication is facilitated via a high-performance bridge provided by `pywebview`, allowing for a seamless integration of local system resources and web technologies.",
+    "children": [
+      {
+        "name": "Backend Analytics & Orchestration",
+        "description": "The 'brain' of the system, responsible for audio signal processing, AI-driven taste mapping, and web-scale marketplace automation.",
+        "domain": "backend",
+        "children": [
+          {
+            "name": "Application Lifecycle",
+            "description": "Nodes managing the initialization and bridge connectivity between domains.",
+            "files": [
+              {
+                "path": "backend/main.py",
+                "description": "Serves as the **primary entry point** for the entire application, initializing the environment and loading variables. It handles the window creation via `pywebview` and ensures the integration between the Python logic and the Vite-driven frontend."
+              },
+              {
+                "path": "backend/bridge.py",
+                "description": "The **central orchestration layer** that exposes Python methods to the JavaScript context. It manages multi-threaded execution for background audio analysis and coordinates complex workflows between the database, clients, and AI advisors."
+              }
+            ],
+            "id": 3,
+            "domain": "backend",
+            "color": "#0078D4",
+            "weight": 2,
+            "layout": {
+              "x": 42.857142857142854,
+              "y": 30,
+              "w": 57.142857142857146,
+              "h": 35
+            }
+          },
+          {
+            "name": "Intelligence Engines",
+            "description": "Sophisticated logic modules that quantify musical taste and find physical inventory.",
+            "files": [
+              {
+                "path": "backend/llm_advisor.py",
+                "description": "Interfaces with OpenAI to provide **qualitative semantic analysis** of audio data. It translates raw mathematical similarity scores into human-readable insights that explain why a specific album fits a user's unique 'Sonic DNA'."
+              },
+              {
+                "path": "backend/profile_engine.py",
+                "description": "Contains the **mathematical core of the system**, utilizing K-Means clustering and Reciprocal Rank Fusion (RRF). It calculates the user's taste centroid and generates visual 'Sonic Maps' to plot album compatibility in a 2D PCA space."
+              },
+              {
+                "path": "backend/scraper.py",
+                "description": "A **Playwright-driven automation module** that navigates Dutch vinyl marketplaces to locate stock and pricing. It uses stealth techniques to avoid detection and passes raw HTML content to the LLM for high-accuracy product link extraction."
+              }
+            ],
+            "id": 4,
+            "domain": "backend",
+            "color": "#0078D4",
+            "weight": 3,
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "w": 100,
+              "h": 30
+            }
+          },
+          {
+            "name": "Audio Analysis Core",
+            "description": "Tools specialized in extracting spectral features and semantic tags from raw audio signals.",
+            "files": [
+              {
+                "path": "backend/clap_analyzer.py",
+                "description": "Leverages the **CLAP (Contrastive Language-Audio Pretraining) model** to perform zero-shot audio classification. It maps 48kHz audio signals to a large set of natural language prompts to determine the 'vibe' and 'mood' of a track."
+              },
+              {
+                "path": "backend/clap_prompts.yaml",
+                "description": "A **semantic configuration file** that defines the hierarchical layers of prompts used by the CLAP model. It categorizes audio into Sound Sources, Energy, Mood, and Genre, providing the linguistic foundation for audio tagging."
+              },
+              {
+                "path": "backend/deezer_client.py",
+                "description": "Handles API communication with Deezer and performs **low-level spectral analysis** using Librosa. It extracts MFCCs, chroma features, and tempo from 30-second previews to feed the system's similarity engine."
+              }
+            ],
+            "id": 5,
+            "domain": "backend",
+            "color": "#0078D4",
+            "weight": 3,
+            "layout": {
+              "x": 0,
+              "y": 30,
+              "w": 42.857142857142854,
+              "h": 70
+            }
+          },
+          {
+            "name": "Persistence & Observability",
+            "description": "Services ensuring data integrity and system transparency across async tasks.",
+            "files": [
+              {
+                "path": "backend/database.py",
+                "description": "The **persistence layer** utilizing SQLite to store user preferences, cached CLAP results, and scanned album metadata. It enables the system to operate efficiently by avoiding redundant audio downloads and model inferences."
+              },
+              {
+                "path": "backend/logger.py",
+                "description": "A **highly customized logging utility** that uses the Rich library to provide color-coded, level-specific feedback for async operations. It suppresses noisy external library logs while highlighting critical path events like AI reasoning and web scraping."
+              }
+            ],
+            "id": 6,
+            "domain": "backend",
+            "color": "#0078D4",
+            "weight": 2,
+            "layout": {
+              "x": 42.857142857142854,
+              "y": 65,
+              "w": 57.142857142857146,
+              "h": 35
+            }
+          }
+        ],
+        "id": 2,
+        "color": "#0078D4",
+        "files": [],
+        "weight": 11,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 36.666666666666664
+        }
+      },
+      {
+        "name": "Frontend User Interface",
+        "description": "The interactive dashboard allowing users to visualize their Sonic DNA and audit albums for potential purchase.",
+        "domain": "frontend",
+        "children": [
+          {
+            "name": "Interface & Reactivity",
+            "description": "The primary views and logic governing the user's visual experience.",
+            "files": [
+              {
+                "path": "frontend/src/App.vue",
+                "description": "The **monolithic root component** that manages the application's reactive state, including sync status and analysis results. It implements complex polling logic to update the UI as the Python background workers finish multi-stage audio processing."
+              },
+              {
+                "path": "frontend/src/main.js",
+                "description": "Standard entry point for the Vue 3 application. It **mounts the virtual DOM** and initializes global styling, ensuring the frontend is ready for the Python bridge to inject the JS API."
+              },
+              {
+                "path": "frontend/index.html",
+                "description": "The HTML template that provides the **mounting point for the application**. It serves as the bridge for the Vite development server and the final production asset container."
+              }
+            ],
+            "id": 8,
+            "domain": "frontend",
+            "color": "#0D8319",
+            "weight": 3,
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "w": 100,
+              "h": 37.5
+            }
+          },
+          {
+            "name": "Design & Pre-processing",
+            "description": "Styling configurations that drive the modern dark-themed aesthetic of the app.",
+            "files": [
+              {
+                "path": "frontend/src/style.css",
+                "description": "The **entry point for CSS injection**, importing Tailwind's base, component, and utility layers. It ensures that the application has a consistent, professional-grade visual foundation."
+              },
+              {
+                "path": "frontend/tailwind.config.js",
+                "description": "Configuration file for the **utility-first CSS framework**. It defines content paths to ensure unused styles are purged, keeping the production build of the desktop app lightweight."
+              },
+              {
+                "path": "frontend/postcss.config.js",
+                "description": "Manages CSS transformations, specifically **handling autoprefixing and Tailwind processing**. This ensures that the frontend styling remains compatible with the specific Chromium version bundled with pywebview."
+              }
+            ],
+            "id": 9,
+            "domain": "frontend",
+            "color": "#0D8319",
+            "weight": 3,
+            "layout": {
+              "x": 0,
+              "y": 37.5,
+              "w": 60,
+              "h": 62.5
+            }
+          },
+          {
+            "name": "Frontend Infrastructure",
+            "description": "The build and dependency management systems for the web layer.",
+            "files": [
+              {
+                "path": "frontend/package.json",
+                "description": "Defines the **frontend ecosystem**, including scripts for development and building. It manages dependencies like Vue 3 and Vite, which are critical for the rapid prototyping of the interactive dashboard."
+              },
+              {
+                "path": "frontend/vite.config.js",
+                "description": "The **build tool configuration** that optimizes the frontend assets. It specifically sets the development server port to 5173 to allow the Python backend to reliably connect to the frontend during development."
+              }
+            ],
+            "id": 10,
+            "domain": "frontend",
+            "color": "#0D8319",
+            "weight": 2,
+            "layout": {
+              "x": 60,
+              "y": 37.5,
+              "w": 40,
+              "h": 62.5
+            }
+          }
+        ],
+        "id": 7,
+        "color": "#0D8319",
+        "files": [],
+        "weight": 9,
+        "layout": {
+          "x": 0,
+          "y": 36.666666666666664,
+          "w": 47.368421052631575,
+          "h": 63.333333333333336
+        }
+      },
+      {
+        "name": "Project Infrastructure",
+        "description": "Deployment scripts, environmental metadata, and dependency specifications.",
+        "domain": "infrastructure",
+        "children": [
+          {
+            "name": "Development Workflows",
+            "description": "Batch scripts used to automate environment setup and versioning.",
+            "files": [
+              {
+                "path": "go.bat",
+                "description": "A **comprehensive automation script** for Windows environments. It handles virtual environment creation, PyTorch hardware detection (CUDA vs CPU), and provides one-click commands for running, building, and freezing requirements."
+              },
+              {
+                "path": "release.bat",
+                "description": "Automates the **Git tagging and release process**. It validates the current branch status, checks for uncommitted changes, and ensures that version increments in `version.txt` are properly reflected in the repository history."
+              }
+            ],
+            "id": 12,
+            "domain": "infrastructure",
+            "color": "#DE6808",
+            "weight": 2,
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "w": 100,
+              "h": 50
+            }
+          },
+          {
+            "name": "Environment & Metadata",
+            "description": "Static files defining the technical requirements and current state of the project.",
+            "files": [
+              {
+                "path": "requirements.txt",
+                "description": "Specifies the **entire Python dependency tree**, including heavy-duty libraries like PyTorch and Librosa. It is used by the `go.bat` script to ensure that every developer has an identical analytical environment."
+              },
+              {
+                "path": "version.txt",
+                "description": "A simple **SemVer-compliant metadata file**. It acts as the source of truth for the `release.bat` script when generating new build artifacts and deployment tags."
+              }
+            ],
+            "id": 13,
+            "domain": "infrastructure",
+            "color": "#DE6808",
+            "weight": 2,
+            "layout": {
+              "x": 0,
+              "y": 50,
+              "w": 100,
+              "h": 50
+            }
+          }
+        ],
+        "id": 11,
+        "color": "#DE6808",
+        "files": [],
+        "weight": 5,
+        "layout": {
+          "x": 47.368421052631575,
+          "y": 36.666666666666664,
+          "w": 52.631578947368425,
+          "h": 31.666666666666668
+        }
+      },
+      {
+        "name": "Documentation & Concept",
+        "description": "Strategic definitions and developer-centric guidelines for the project.",
+        "domain": "libraries",
+        "children": [
+          {
+            "name": "Technical Documentation",
+            "description": "High-level overview and quirk-logging for project maintainers.",
+            "files": [
+              {
+                "path": "concept.md",
+                "description": "The **foundational philosophy document**. It outlines the 'Vinyl Uncertainty Tax' and explains the core principles of the 'No-Skip' standard that the application's logic is built to enforce."
+              },
+              {
+                "path": "README.md",
+                "description": "Provides **onboarding instructions** and technical prerequisites for new contributors. It serves as the primary map for setting up FFmpeg and other OS-level dependencies required for audio analysis."
+              },
+              {
+                "path": "llm.md",
+                "description": "A specialized **AI-context document** designed for support programmers. It logs workarounds and atypical architectural choices to help Large Language Models better understand the project's unique codebase."
+              },
+              {
+                "path": "project-starter.json",
+                "description": "A **comprehensive project snapshot** containing the initial roadmap and tech stack definitions. It preserves the early design goals and workflow logic used to scaffold the application."
+              }
+            ],
+            "id": 15,
+            "domain": "libraries",
+            "color": "#BB86FC",
+            "weight": 4,
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "w": 100,
+              "h": 100
+            }
+          }
+        ],
+        "id": 14,
+        "color": "#BB86FC",
+        "files": [],
+        "weight": 5,
+        "layout": {
+          "x": 47.368421052631575,
+          "y": 68.33333333333333,
+          "w": 52.631578947368425,
+          "h": 31.666666666666668
+        }
+      }
+    ],
+    "id": 1,
+    "domain": "default",
+    "color": "#4B5563",
+    "files": [],
+    "weight": 31
+  },
+  "file_hashes": {
+    "backend/bridge.py": "a444fc8fb2d43453bb0f4c1142cba9946a7bb60e",
+    "backend/database.py": "f0b3f8353c1b3bd96962a79285e8eaa1e8d149dd",
+    "backend/deezer_client.py": "5d73a9266a63351b45d5fc2cd51fb39cc615f328",
+    "backend/llm_advisor.py": "8b8d6f2b24bc5311bb01ea75b58130d80ea86288",
+    "backend/main.py": "db6090585cfed4c1c088fd5339061b1d13da9e79",
+    "backend/scraper.py": "e74d8c47a3c7b29c187cf401000760be26b2bee6",
+    "frontend/src/App.vue": "b84eca3cd73fc51ca396bafa2b766deec8593d92",
+    "frontend/src/main.js": null,
+    "frontend/src/style.css": null,
+    "frontend/index.html": null,
+    "frontend/package.json": null,
+    "frontend/postcss.config.js": null,
+    "frontend/tailwind.config.js": null,
+    "frontend/vite.config.js": null,
+    "concept.md": null,
+    "go.bat": null,
+    "llm.md": null,
+    "project-starter.json": null,
+    "README.md": null,
+    "release.bat": null,
+    "requirements.txt": "a815d5e7a7809956e7cb67939e0b3bbedb775f76",
+    "version.txt": null,
+    "backend/clap_analyzer.py": "c0512169f170748902b8a60c2c200f956173a8f5",
+    "backend/clap_prompts.yaml": "c658824ec492de22c3ef468a4c097a4f498ffb6c",
+    "backend/profile_engine.py": "c4b23db151447012006a866bd76812bdb02d46fe",
+    "backend/logger.py": "06205279f30e39da3fb4350d2f6c2ceceaf77f67"
+  }
+}

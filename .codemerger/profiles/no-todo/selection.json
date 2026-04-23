@@ -1,11 +1,11 @@
 [
   {
     "path": "backend/bridge.py",
-    "tokens": 3195,
+    "tokens": 3268,
     "ignoreTokens": false,
-    "lines": 347,
-    "mtime": 1776939240.4835289,
-    "hash": "bb5eae4ab3e46b5e415479de2af11d3cf7a5c059"
+    "lines": 358,
+    "mtime": 1776950727.6941838,
+    "hash": "a444fc8fb2d43453bb0f4c1142cba9946a7bb60e"
   },
   {
     "path": "backend/database.py",
@@ -17,40 +17,43 @@
   },
   {
     "path": "backend/deezer_client.py",
-    "tokens": 756,
+    "tokens": 767,
     "ignoreTokens": false,
-    "lines": 94,
-    "mtime": 1776697047.030513,
-    "hash": "c675bdb2a24f9ebd6bb37de60c9d16f8562a75a5"
+    "lines": 95,
+    "mtime": 1776950160.533825,
+    "hash": "5d73a9266a63351b45d5fc2cd51fb39cc615f328"
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 1351,
+    "tokens": 1352,
     "ignoreTokens": false,
-    "lines": 130,
-    "mtime": 1776863356.2648358,
-    "hash": "a1c53033443f56f5fee10575f6b7dc58fc035583"
+    "lines": 131,
+    "mtime": 1776950160.5823658,
+    "hash": "8b8d6f2b24bc5311bb01ea75b58130d80ea86288"
   },
   {
     "path": "backend/main.py",
-    "tokens": 325,
-    "ignoreTokens": false
+    "tokens": 333,
+    "ignoreTokens": false,
+    "lines": 53,
+    "mtime": 1776950160.6276276,
+    "hash": "db6090585cfed4c1c088fd5339061b1d13da9e79"
   },
   {
     "path": "backend/scraper.py",
-    "tokens": 802,
+    "tokens": 889,
     "ignoreTokens": false,
-    "lines": 93,
-    "mtime": 1776937783.5653937,
-    "hash": "765881abf9ef40ea9e19f2d618f7baf72e9e661d"
+    "lines": 102,
+    "mtime": 1776950727.7523274,
+    "hash": "e74d8c47a3c7b29c187cf401000760be26b2bee6"
   },
   {
     "path": "frontend/src/App.vue",
-    "tokens": 5913,
+    "tokens": 6045,
     "ignoreTokens": false,
-    "lines": 564,
-    "mtime": 1776939240.5377724,
-    "hash": "6b8a21fdc0c185993877f54374a7ffee8ec908b9"
+    "lines": 577,
+    "mtime": 1776950727.8064108,
+    "hash": "b84eca3cd73fc51ca396bafa2b766deec8593d92"
   },
   {
     "path": "frontend/src/main.js",
@@ -119,11 +122,11 @@
   },
   {
     "path": "requirements.txt",
-    "tokens": 481,
+    "tokens": 31,
     "ignoreTokens": false,
-    "lines": 56,
-    "mtime": 1776937783.7441864,
-    "hash": "c5cf9e8d46feb339996dd737a41dfa82d1df3b7f"
+    "lines": 11,
+    "mtime": 1776947537.9355783,
+    "hash": "a815d5e7a7809956e7cb67939e0b3bbedb775f76"
   },
   {
     "path": "version.txt",
@@ -132,10 +135,10 @@
   },
   {
     "path": "backend/clap_analyzer.py",
-    "tokens": 576,
-    "lines": 68,
-    "mtime": 1776848638.2984726,
-    "hash": "1b7475795a1905f9bd79668f4a1ed3fdd050f586"
+    "tokens": 588,
+    "lines": 69,
+    "mtime": 1776950160.7279165,
+    "hash": "c0512169f170748902b8a60c2c200f956173a8f5"
   },
   {
     "path": "backend/clap_prompts.yaml",
@@ -146,9 +149,16 @@
   },
   {
     "path": "backend/profile_engine.py",
-    "tokens": 1575,
-    "lines": 159,
-    "mtime": 1776855944.1993494,
-    "hash": "0f8b4e360a65c03ead55f248f5ff73dc6b3cc7e6"
+    "tokens": 1582,
+    "lines": 160,
+    "mtime": 1776950160.788233,
+    "hash": "c4b23db151447012006a866bd76812bdb02d46fe"
+  },
+  {
+    "path": "backend/logger.py",
+    "tokens": 866,
+    "lines": 108,
+    "mtime": 1776950899.2293012,
+    "hash": "06205279f30e39da3fb4350d2f6c2ceceaf77f67"
   }
 ]

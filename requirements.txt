@@ -54,3 +54,4 @@ torch
 torchaudio
 PyYAML
 playwright-stealth
+matplotlib

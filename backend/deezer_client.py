@@ -3,6 +3,7 @@ import librosa
 import numpy as np
 import os
 import tempfile
+from backend.logger import logger
 
 class DeezerClient:
     BASE_URL = "https://api.deezer.com"
@@ -20,7 +21,7 @@ class DeezerClient:
                 data = response.json().get('data', [])
                 all_tracks.extend(data)
             except Exception as e:
-                print(f"Error fetching loved tracks at index {index}: {e}")
+                logger.error(f"Error fetching loved tracks at index {index}: {e}")
 
         return all_tracks
 
@@ -31,7 +32,7 @@ class DeezerClient:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error fetching track: {e}")
+            logger.error(f"Error fetching track: {e}")
             return None
 
     def get_album_tracks(self, album_id):
@@ -41,7 +42,7 @@ class DeezerClient:
             response.raise_for_status()
             return response.json().get('data', [])
         except Exception as e:
-            print(f"Error fetching album tracks: {e}")
+            logger.error(f"Error fetching album tracks: {e}")
             return []
 
     def download_preview(self, url, track_id):
@@ -59,7 +60,7 @@ class DeezerClient:
 
             return file_path
         except Exception as e:
-            print(f"Error downloading preview: {e}")
+            logger.error(f"Error downloading preview: {e}")
             return None
 
     def analyze_audio(self, file_path):
@@ -90,5 +91,5 @@ class DeezerClient:
                 "tempo": float(tempo[0]) if isinstance(tempo, np.ndarray) else float(tempo)
             }
         except Exception as e:
-            print(f"Error analyzing audio: {e}")
+            logger.error(f"Error analyzing audio: {e}")
             return None

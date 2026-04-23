@@ -6,6 +6,7 @@ except ImportError:
 import urllib.parse
 import time
 import random
+from backend.logger import logger
 
 class MarketplaceScraper:
     def __init__(self, advisor):
@@ -19,7 +20,7 @@ class MarketplaceScraper:
         results = []
         try:
             with sync_playwright() as p:
-                print(f"Launching scraper (Headless={headless}) for Google Search: {url}")
+                logger.scrape(f"Launching scraper (Headless={headless}) for Google Search: {url}")
                 browser = p.chromium.launch(headless=headless, args=["--disable-blink-features=AutomationControlled"])
 
                 # Use a modern user agent to avoid bot detection
@@ -32,7 +33,7 @@ class MarketplaceScraper:
                     stealth_sync(page)
 
                 # Small random delay to simulate human lead-in
-                time.sleep(random.uniform(1.0, 2.5))
+                time.sleep(random.uniform(1.5, 3.5))
 
                 page.goto(url, wait_until="networkidle", timeout=30000)
 
@@ -46,15 +47,23 @@ class MarketplaceScraper:
                 except:
                     pass
 
-                # Extract top organic shop links from Google results
+                # Extract top organic shop links from Google results using more robust selectors
                 links = page.evaluate("""() => {
-                    const anchors = Array.from(document.querySelectorAll('#search a'));
+                    // Look for organic result links (usually inside h3 or specifically marked divs)
+                    const organicSelectors = ['#search a', 'div.g a', 'a[data-ved]'];
+                    let anchors = [];
+                    organicSelectors.forEach(sel => {
+                        anchors = anchors.concat(Array.from(document.querySelectorAll(sel)));
+                    });
+
                     return anchors.map(a => a.href)
                         .filter(href => {
                             try {
                                 const u = new URL(href);
                                 return !u.hostname.includes('google') &&
                                        !u.hostname.includes('youtube') &&
+                                       !u.hostname.includes('facebook') &&
+                                       !u.hostname.includes('instagram') &&
                                        href.startsWith('http');
                             } catch { return false; }
                         })
@@ -64,7 +73,7 @@ class MarketplaceScraper:
 
                 # Deep scrape the actual product pages to find price/stock details
                 for link in links:
-                    print(f"Scraping product page: {link}")
+                    logger.scrape(f"Scraping product page: {link}")
                     try:
                         page.goto(link, wait_until="domcontentloaded", timeout=15000)
                         # Extract raw text content for the LLM to parse
@@ -75,11 +84,11 @@ class MarketplaceScraper:
                             "raw_content": text[:6000] # Truncate to save tokens while keeping context
                         })
                     except Exception as e:
-                        print(f"Failed to scrape {link}: {e}")
+                        logger.error(f"Failed to scrape {link}: {e}")
 
                 browser.close()
         except Exception as e:
-            print(f"Google Scraper encountered an error: {e}")
+            logger.error(f"Google Scraper encountered an error: {e}")
 
         return results
 
@@ -88,6 +97,6 @@ class MarketplaceScraper:
         raw_data = self.search_google(artist, album, headless=headless)
         if not raw_data:
             return []
-
-        print("Sending raw marketplace data to LLM for parsing...")
+        # print(raw_data)
+        logger.ai("Sending raw marketplace data to LLM for parsing...")
         return self.advisor.parse_scraper_results(artist, album, raw_data)

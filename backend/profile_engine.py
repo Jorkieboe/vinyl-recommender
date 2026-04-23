@@ -8,6 +8,7 @@ import matplotlib
 # Use the 'Agg' backend to allow plot generation in background threads
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from backend.logger import logger
 
 class ProfileEngine:
     @staticmethod
@@ -156,4 +157,4 @@ class ClusterEngine:
         # Save to file
         plt.savefig('taste_map.png', bbox_inches='tight', dpi=150)
         plt.close()
-        print(f"Visualization saved to taste_map.png")
+        logger.result(f"Visualization saved to taste_map.png")

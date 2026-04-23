@@ -3,6 +3,7 @@ import librosa
 import yaml
 import os
 from transformers import ClapModel, ClapProcessor
+from backend.logger import logger
 
 class ClapAnalyzer:
     def __init__(self):
@@ -14,22 +15,22 @@ class ClapAnalyzer:
 
     def _load_model(self):
         if self.model is None:
-            print(f"Loading CLAP model to {self.device}... this might take a minute.")
+            logger.ai(f"Loading CLAP model to {self.device}... this might take a minute.")
             self.model = ClapModel.from_pretrained("laion/clap-htsat-unfused").to(self.device)
             self.processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
-            print("CLAP model loaded successfully.")
+            logger.result("CLAP model loaded successfully.")
 
     def _load_layers(self):
         """Loads categories and prompts from the YAML configuration file"""
         if not os.path.exists(self.prompts_path):
-            print(f"Warning: Prompts file not found at {self.prompts_path}. Using minimal fallback.")
+            logger.warning(f"Warning: Prompts file not found at {self.prompts_path}. Using minimal fallback.")
             return {"System": ["error loading prompts"]}
 
         try:
             with open(self.prompts_path, 'r') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            print(f"Error reading YAML file: {e}")
+            logger.error(f"Error reading YAML file: {e}")
             return {"System": ["error parsing prompts"]}
 
     def analyze(self, audio_path):
@@ -38,7 +39,7 @@ class ClapAnalyzer:
 
         try:
             # CLAP models typically require 48kHz audio inputs
-            print('Starting CLAP analysis...')
+            logger.audio('Starting CLAP analysis...')
             y, sr = librosa.load(audio_path, sr=48000)
 
             results = {}
@@ -64,5 +65,5 @@ class ClapAnalyzer:
 
             return results
         except Exception as e:
-            print(f"Error in CLAP analysis: {e}")
+            logger.error(f"Error in CLAP analysis: {e}")
             return None

@@ -1,6 +1,7 @@
 import os
 import json
 from openai import OpenAI
+from backend.logger import logger
 
 class LLMAdvisor:
     def __init__(self):
@@ -86,7 +87,7 @@ class LLMAdvisor:
             )
             return json.loads(response.choices[0].message.content)
         except Exception as e:
-            print(f"LLM Error: {e}")
+            logger.error(f"LLM Error: {e}")
             return {
                 "sonic_breakdown": "Analysis failed, but the mathematical score is calculated below.",
                 "filler_tracks": []
@@ -124,7 +125,8 @@ class LLMAdvisor:
                 response_format={"type": "json_object"}
             )
             data = json.loads(response.choices[0].message.content)
+            print(data)
             return data.get('links', [])
         except Exception as e:
-            print(f"LLM Scraper Parsing Error: {e}")
+            logger.error(f"LLM Scraper Parsing Error: {e}")
             return []

@@ -16,10 +16,10 @@
   },
   {
     "path": "requirements.txt",
-    "tokens": 481,
-    "lines": 56,
-    "mtime": 1776937783.7441864,
-    "hash": "c5cf9e8d46feb339996dd737a41dfa82d1df3b7f"
+    "tokens": 31,
+    "lines": 11,
+    "mtime": 1776947537.9355783,
+    "hash": "a815d5e7a7809956e7cb67939e0b3bbedb775f76"
   },
   {
     "path": "concept.md"
@@ -40,17 +40,17 @@
   },
   {
     "path": "backend/bridge.py",
-    "tokens": 3195,
-    "lines": 347,
-    "mtime": 1776939240.4835289,
-    "hash": "bb5eae4ab3e46b5e415479de2af11d3cf7a5c059"
+    "tokens": 3268,
+    "lines": 358,
+    "mtime": 1776950727.6941838,
+    "hash": "a444fc8fb2d43453bb0f4c1142cba9946a7bb60e"
   },
   {
     "path": "backend/main.py",
-    "tokens": 325,
-    "lines": 52,
-    "mtime": 1776689726.8112023,
-    "hash": "e75b88ff5fba507cb618c387cdefd61c262e5cf3"
+    "tokens": 333,
+    "lines": 53,
+    "mtime": 1776950160.6276276,
+    "hash": "db6090585cfed4c1c088fd5339061b1d13da9e79"
   },
   {
     "path": "frontend/index.html",
@@ -75,10 +75,10 @@
   },
   {
     "path": "frontend/src/App.vue",
-    "tokens": 5913,
-    "lines": 564,
-    "mtime": 1776939240.5377724,
-    "hash": "6b8a21fdc0c185993877f54374a7ffee8ec908b9"
+    "tokens": 6045,
+    "lines": 577,
+    "mtime": 1776950727.8064108,
+    "hash": "b84eca3cd73fc51ca396bafa2b766deec8593d92"
   },
   {
     "path": "frontend/src/main.js",
@@ -117,17 +117,17 @@
   },
   {
     "path": "backend/deezer_client.py",
-    "tokens": 756,
-    "lines": 94,
-    "mtime": 1776697047.030513,
-    "hash": "c675bdb2a24f9ebd6bb37de60c9d16f8562a75a5"
+    "tokens": 767,
+    "lines": 95,
+    "mtime": 1776950160.533825,
+    "hash": "5d73a9266a63351b45d5fc2cd51fb39cc615f328"
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 1351,
-    "lines": 130,
-    "mtime": 1776863356.2648358,
-    "hash": "a1c53033443f56f5fee10575f6b7dc58fc035583"
+    "tokens": 1352,
+    "lines": 131,
+    "mtime": 1776950160.5823658,
+    "hash": "8b8d6f2b24bc5311bb01ea75b58130d80ea86288"
   },
   {
     "path": ".env",
@@ -138,9 +138,9 @@
   },
   {
     "path": "backend/scraper.py",
-    "tokens": 802,
-    "lines": 93,
-    "mtime": 1776937783.5653937,
-    "hash": "765881abf9ef40ea9e19f2d618f7baf72e9e661d"
+    "tokens": 889,
+    "lines": 102,
+    "mtime": 1776950727.7523274,
+    "hash": "e74d8c47a3c7b29c187cf401000760be26b2bee6"
   }
 ]

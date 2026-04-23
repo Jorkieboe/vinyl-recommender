@@ -9,6 +9,7 @@
     "backend/database.py",
     "backend/deezer_client.py",
     "backend/llm_advisor.py",
+    "backend/logger.py",
     "backend/main.py",
     "backend/profile_engine.py",
     "backend/scraper.py",
@@ -30,5 +31,5 @@
     "version.txt"
   ],
   "unknown_files": [],
-  "total_tokens": 30412
+  "total_tokens": 31159
 }

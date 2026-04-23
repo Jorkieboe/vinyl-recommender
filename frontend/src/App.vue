@@ -108,12 +108,26 @@ const analyzeAlbum = async (trackId) => {
 
 const startAnalysisPolling = (albumId) => {
   if (analysisInterval) clearInterval(analysisInterval)
+  let pollCount = 0
   analysisInterval = setInterval(async () => {
+    pollCount++
     const res = await window.pywebview.api.get_album_analysis(albumId)
+
     if (res.status === 'success') {
-      analysisResult.value = res.data
+      // Force a fresh object reference to ensure Vue detects deep changes
+      analysisResult.value = { ...res.data }
       activeAnalysis.value = null
-      clearInterval(analysisInterval)
+
+      const isComplete = res.data.analysis_json.is_complete
+
+      // Stop polling if the backend explicitly marked the process as complete
+      // or if we've exceeded the safety timeout (60 seconds / 30 polls)
+      if (isComplete || pollCount >= 30) {
+        console.log("Analysis cycle finished.")
+        clearInterval(analysisInterval)
+      } else {
+        console.log(`Polling for marketplace links... (${pollCount}/30)`)
+      }
     }
   }, 2000)
 }
@@ -194,9 +208,10 @@ onMounted(() => {
       message.value = 'Bridge Connected'
       const defUser = await window.pywebview.api.get_default_user()
       if (defUser) userId.value = defUser
-      updateStatus()
-      fetchSyncedTracks()
-      fetchUserProfile()
+
+      // Start the regular update loop immediately on connect
+      startPolling()
+
       clearInterval(interval)
     }
   }, 100)
@@ -304,7 +319,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section v-if="userProfile" class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
+        <section v-if="userProfile && Object.keys(userProfile).length > 0" class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
           <h2 class="text-lg font-bold mb-4 flex items-center">
             <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
             Sonic DNA Profile
@@ -453,7 +468,11 @@ onUnmounted(() => {
       </div>
 
       <!-- Album Analysis Verdict View -->
-      <div v-else-if="analysisResult" class="space-y-6">
+      <div
+        v-else-if="analysisResult"
+        class="space-y-6"
+        :key="analysisResult.album_id + '_' + (analysisResult.analysis_json.acquisition_links?.length || 0)"
+      >
 
         <h2 class="text-lg font-bold mb-2 flex items-center">
           <span class="w-2 h-2 bg-indigo-500 rounded-full mr-3"></span>
