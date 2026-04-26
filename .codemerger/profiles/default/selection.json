@@ -40,10 +40,10 @@
   },
   {
     "path": "backend/bridge.py",
-    "tokens": 3268,
-    "lines": 358,
-    "mtime": 1776950727.6941838,
-    "hash": "a444fc8fb2d43453bb0f4c1142cba9946a7bb60e"
+    "tokens": 4564,
+    "lines": 466,
+    "mtime": 1777016281.9556644,
+    "hash": "fd3c7f4ec712183400ec4c70ffcfec077457332e"
   },
   {
     "path": "backend/main.py",
@@ -75,10 +75,10 @@
   },
   {
     "path": "frontend/src/App.vue",
-    "tokens": 6045,
-    "lines": 577,
-    "mtime": 1776950727.8064108,
-    "hash": "b84eca3cd73fc51ca396bafa2b766deec8593d92"
+    "tokens": 7692,
+    "lines": 711,
+    "mtime": 1777016282.1114142,
+    "hash": "176fe62a5e6e5796fe3c462e737e1827d2b18dbe"
   },
   {
     "path": "frontend/src/main.js",
@@ -110,17 +110,17 @@
   },
   {
     "path": "backend/database.py",
-    "tokens": 1334,
-    "lines": 189,
-    "mtime": 1776939240.4352374,
-    "hash": "f0b3f8353c1b3bd96962a79285e8eaa1e8d149dd"
+    "tokens": 1493,
+    "lines": 209,
+    "mtime": 1777016282.0091703,
+    "hash": "22c1353382fadb56447503edf048b7c6fa26b407"
   },
   {
     "path": "backend/deezer_client.py",
-    "tokens": 767,
-    "lines": 95,
-    "mtime": 1776950160.533825,
-    "hash": "5d73a9266a63351b45d5fc2cd51fb39cc615f328"
+    "tokens": 850,
+    "lines": 105,
+    "mtime": 1777016282.0593307,
+    "hash": "3fd0ad2581035030bf869f95c600822613fc71c0"
   },
   {
     "path": "backend/llm_advisor.py",

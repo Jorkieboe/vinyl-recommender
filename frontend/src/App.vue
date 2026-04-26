@@ -8,10 +8,13 @@ const syncStatus = ref('Idle')
 const trackCount = ref(0)
 const syncedTracks = ref([])
 const userProfile = ref(null)
+const currentTab = ref('dashboard') // 'dashboard' or 'discovery'
 
 // Album Analysis State
 const activeAnalysis = ref(null)
 const analysisResult = ref(null)
+const discoveryResults = ref([])
+const selectedDiscoveryAlbum = ref(null)
 
 // CLAP Analysis State
 const activeClap = ref(null)
@@ -193,12 +196,25 @@ const fetchUserProfile = async () => {
   }
 }
 
+const fetchDiscoveryResults = async () => {
+  if (window.pywebview && window.pywebview.api) {
+    discoveryResults.value = await window.pywebview.api.get_discovery_results()
+  }
+}
+
+const startFlowDiscovery = async () => {
+  if (window.pywebview && window.pywebview.api) {
+    await window.pywebview.api.start_flow_discovery(userId.value)
+  }
+}
+
 const startPolling = () => {
   if (pollInterval) clearInterval(pollInterval)
   pollInterval = setInterval(() => {
     updateStatus()
     fetchSyncedTracks()
     fetchUserProfile()
+    fetchDiscoveryResults()
   }, 2000)
 }
 
@@ -234,7 +250,24 @@ onUnmounted(() => {
       <p class="text-gray-400 italic">Ensure your next purchase is skip-free.</p>
     </header>
 
-    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <nav class="flex space-x-4 mb-8 bg-gray-800 p-2 rounded-2xl border border-gray-700">
+      <button
+        @click="currentTab = 'dashboard'"
+        :class="currentTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'"
+        class="px-6 py-2 rounded-xl font-bold transition text-sm"
+      >
+        My Dashboard
+      </button>
+      <button
+        @click="currentTab = 'discovery'"
+        :class="currentTab === 'discovery' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'"
+        class="px-6 py-2 rounded-xl font-bold transition text-sm"
+      >
+        Flow Discovery
+      </button>
+    </nav>
+
+    <main v-if="currentTab === 'dashboard'" class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
 
       <!-- Left Column: Controls & Stats -->
       <div class="lg:col-span-1 space-y-8">
@@ -561,6 +594,91 @@ onUnmounted(() => {
 
     </section>
   </div>
+    </main>
+
+    <main v-else class="w-full max-w-6xl relative">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h2 class="text-2xl font-bold">Sonic Discovery</h2>
+          <p class="text-gray-400 text-sm">Albums found in your Flow with >60% compatibility.</p>
+        </div>
+        <button
+          @click="startFlowDiscovery"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-2xl transition shadow-lg shadow-indigo-900/20"
+        >
+          Discover New Flow
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div
+          v-for="album in discoveryResults"
+          :key="album.album_id"
+          @click="selectedDiscoveryAlbum = album"
+          class="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden cursor-pointer hover:border-indigo-500 transition-all group"
+        >
+          <div class="relative">
+            <img :src="album.cover_url" class="w-full aspect-square object-cover" />
+            <div class="absolute top-2 right-2 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg border border-gray-700 text-xs font-black text-indigo-400">
+              {{ album.confidence_score }}%
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="font-bold text-sm truncate group-hover:text-indigo-400 transition">{{ album.title }}</p>
+            <p class="text-[10px] text-gray-500 truncate uppercase tracking-tighter">{{ album.artist }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="discoveryResults.length === 0" class="text-center py-32 bg-gray-800/50 rounded-3xl border border-dashed border-gray-700">
+        <p class="text-gray-500">No high-match albums found yet. Click "Discover New Flow" to start scanning.</p>
+      </div>
+
+      <!-- Side Panel -->
+      <div
+        v-if="selectedDiscoveryAlbum"
+        class="fixed inset-y-0 right-0 w-[400px] bg-gray-900 border-l border-gray-700 shadow-2xl z-50 transform transition-transform p-8 overflow-y-auto"
+      >
+        <button @click="selectedDiscoveryAlbum = null" class="absolute top-6 left-6 text-gray-500 hover:text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mt-8 space-y-6">
+          <img :src="selectedDiscoveryAlbum.cover_url" class="w-full rounded-2xl shadow-xl" />
+
+          <div>
+            <h3 class="text-2xl font-bold">{{ selectedDiscoveryAlbum.title }}</h3>
+            <p class="text-indigo-400 font-medium">{{ selectedDiscoveryAlbum.artist }}</p>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <div class="bg-gray-800 p-4 rounded-2xl flex-1 text-center border border-gray-700">
+              <span class="block text-[10px] uppercase text-gray-500 font-bold mb-1">Match Score</span>
+              <span class="text-3xl font-black">{{ selectedDiscoveryAlbum.confidence_score }}%</span>
+            </div>
+          </div>
+
+          <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+            <h4 class="text-[10px] uppercase font-bold text-indigo-400 mb-3 tracking-widest">Sonic Breakdown</h4>
+            <p class="text-sm italic leading-relaxed text-gray-300">
+              "{{ selectedDiscoveryAlbum.analysis_json.sonic_breakdown }}"
+            </p>
+          </div>
+
+          <div v-if="selectedDiscoveryAlbum.analysis_json.acquisition_links?.length" class="space-y-3">
+             <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">Purchase Links</h4>
+             <div v-for="link in selectedDiscoveryAlbum.analysis_json.acquisition_links" :key="link.link" class="bg-gray-800 p-3 rounded-xl border border-gray-700 text-xs">
+                <div class="flex justify-between mb-1">
+                  <span class="font-bold text-green-400">{{ link.store }}</span>
+                  <span class="font-mono">{{ link.price }}</span>
+                </div>
+                <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
+             </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <footer class="mt-12 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-medium">

@@ -25,6 +25,16 @@ class DeezerClient:
 
         return all_tracks
 
+    def get_user_flow(self, user_id):
+        """Fetches the personalized 'Flow' tracks for a user"""
+        try:
+            response = requests.get(f"{self.BASE_URL}/user/{user_id}/flow")
+            response.raise_for_status()
+            return response.json().get('data', [])
+        except Exception as e:
+            logger.error(f"Error fetching user flow: {e}")
+            return []
+
     def get_track(self, track_id):
         """Fetches track metadata"""
         try:

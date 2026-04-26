@@ -137,6 +137,26 @@ class Database:
             rows = cursor.fetchall()
             return [{"album_id": r[0], "title": r[1], "artist": r[2], "cover": r[3], "sample_track_id": r[4]} for r in rows]
 
+    def get_high_score_albums(self, min_score=60):
+        """Returns analyzed albums with a high confidence score"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT album_id, title, artist, confidence_score, cover_url, analysis_json
+                FROM scanned_albums
+                WHERE confidence_score >= ?
+                ORDER BY confidence_score DESC
+            ''', (min_score,))
+            rows = cursor.fetchall()
+            return [{
+                "album_id": r[0],
+                "title": r[1],
+                "artist": r[2],
+                "confidence_score": r[3],
+                "cover_url": r[4],
+                "analysis_json": json.loads(r[5])
+            } for r in rows]
+
     def get_all_features(self):
         with self.get_connection() as conn:
             cursor = conn.cursor()

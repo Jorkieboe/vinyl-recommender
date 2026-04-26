@@ -136,6 +136,114 @@ class Bridge:
         """Returns unique albums (with at least 3 tracks) found via loved tracks"""
         return self.db.get_all_synced_albums(min_tracks=3)
 
+    def get_discovery_results(self):
+        """Returns analyzed albums with a score > 60 for the discovery tab"""
+        return self.db.get_high_score_albums(min_score=60)
+
+    def start_flow_discovery(self, user_id):
+        """Fetches Deezer flow and analyzes albums contained within it"""
+        def flow_worker():
+            logger.sync(f"Discovering Flow for user: {user_id}")
+            flow_tracks = self.client.get_user_flow(user_id)
+
+            # Map album_id to a sample track_id for analysis
+            album_map = {}
+            for t in flow_tracks:
+                alb = t.get('album', {})
+                alb_id = alb.get('id')
+                if alb_id and alb_id not in album_map:
+                    album_map[alb_id] = t['id']
+
+            for alb_id, sample_track_id in album_map.items():
+                # Only analyze if we haven't already or if it meets the criteria
+                unique_count = self._count_unique_tracks(alb_id)
+                if unique_count >= 3:
+                    logger.analysis(f"Flow Discovery: Analyzing album {alb_id} (Size: {unique_count})")
+                    # Reuse existing analysis logic via a direct call to the worker logic
+                    # We don't call analyze_album_for_track directly to avoid nested threads
+                    self._run_album_analysis_logic(sample_track_id)
+
+        threading.Thread(target=flow_worker, daemon=True).start()
+        return {"status": "success", "message": "Flow discovery started"}
+
+    def _run_album_analysis_logic(self, track_id):
+        """Synchronous version of the analysis worker logic for internal use"""
+        
+        track_meta = self.client.get_track(track_id)
+        if not track_meta: return
+
+        
+
+        album_id = track_meta['album']['id']
+        cached = self.db.get_scanned_album(album_id)
+        if cached: return
+
+        # Perform logic similar to analysis_worker in analyze_album_for_track
+        all_features = self.db.get_all_features()
+        user_profile = self.db.get_global_profile()
+        if not all_features: return
+
+        self.cluster_engine.fit_clusters(all_features)
+        album_tracks = self.client.get_album_tracks(album_id)
+        track_scores = []
+        album_feature_history = []
+
+        for t in album_tracks:
+            full_t = self.client.get_track(t['id'])
+            if not full_t or not full_t.get('preview'): continue
+            path = self.client.download_preview(full_t['preview'], full_t['id'])
+            if path:
+                feats = self.client.analyze_audio(path)
+                clap_res = self.db.get_clap_result(full_t['id'])
+                if not clap_res:
+                    from backend.clap_analyzer import ClapAnalyzer
+                    if not hasattr(self, 'clap_analyzer'): self.clap_analyzer = ClapAnalyzer()
+                    clap_res = self.clap_analyzer.analyze(path)
+                    if clap_res: self.db.save_clap_result(full_t['id'], clap_res)
+                if feats:
+                    album_feature_history.append(feats)
+                    similarity = self.cluster_engine.get_best_similarity(feats)
+                    tier = "Risky"
+                    if similarity >= 0.80: tier = "Instant Hit"
+                    elif similarity >= 0.70: tier = "Natural Grower"
+                    elif similarity >= 0.60: tier = "Slow Burner"
+                    semantic_tags = {}
+                    if clap_res:
+                        for layer, labels in clap_res.items():
+                            top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
+                            semantic_tags[layer] = [l[0] for l in top_labels]
+                    track_scores.append({"title": full_t['title'], "similarity": similarity, "tier": tier, "semantic_tags": semantic_tags})
+                os.remove(path)
+
+        logger.analysis(track_scores)
+
+        if not track_scores: return
+
+        sims = [s['similarity'] for s in track_scores]
+        n_anchors = len([s for s in sims if s >= 0.80])
+        n_inner = len([s for s in sims if 0.70 <= s < 0.80])
+        n_outer = len([s for s in sims if 0.60 <= s < 0.70])
+        n_horizon = len([s for s in sims if s < 0.60])
+
+        buy_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 1)
+        total_possible_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 3) + (n_horizon * 3)
+        final_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
+        if n_anchors == 0: final_score = min(final_score, 30)
+
+        album_info = {"title": track_meta['album']['title'], "artist": track_meta['artist']['name'], "cover_url": track_meta['album'].get('cover_medium', '')}
+        journey_data = {"anchors": n_anchors, "inner_bridges": n_inner, "outer_bridges": n_outer, "horizon": n_horizon, "calculated_score": final_score}
+        insight = self.advisor.get_album_insight(album_info, track_scores, journey_data, user_profile)
+        insight['calculated_confidence_math'] = final_score
+        insight['is_complete'] = False if final_score > 60 else True
+
+        self.db.save_scanned_album(album_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+
+        if final_score > 60:
+            acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
+            insight['acquisition_links'] = acquisition_links
+            insight['is_complete'] = True
+            self.db.save_scanned_album(album_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+
     def get_album_analysis(self, album_id):
         """Returns cached analysis for an album if it exists"""
         cached = self.db.get_scanned_album(album_id)
