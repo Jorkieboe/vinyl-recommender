@@ -130,3 +130,17 @@ class LLMAdvisor:
         except Exception as e:
             logger.error(f"LLM Scraper Parsing Error: {e}")
             return []
+
+    def agent_call(self, messages):
+        try:
+            response = self.client.chat.completions.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+            data = json.loads(response.choices[0].message.content)
+            print(data)
+            return data.get('links', [])
+        except Exception as e:
+            logger.error(f"LLM Scraper Parsing Error: {e}")
+            return []
