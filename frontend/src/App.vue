@@ -20,6 +20,11 @@ const selectedDiscoveryAlbum = ref(null)
 const activeClap = ref(null)
 const clapResult = ref(null)
 
+// Agent Lab State
+const agentInput = ref('')
+const agentResponse = ref(null)
+const agentLoading = ref(false)
+
 // Manual Search Lab State
 const manualSearchArtist = ref('')
 const manualSearchAlbum = ref('')
@@ -147,6 +152,27 @@ const triggerManualSearch = async () => {
       console.error("Manual search failed", err)
     } finally {
       searchLoading.value = false
+    }
+  }
+}
+
+const callAgent = async () => {
+  if (!agentInput.value) return
+  agentLoading.value = true
+  agentResponse.value = null
+  if (window.pywebview && window.pywebview.api) {
+    try {
+      const res = await window.pywebview.api.call_agent(agentInput.value)
+      if (res.status === 'success') {
+        agentResponse.value = res.data
+      } else {
+        agentResponse.value = { message: "Error: " + res.message }
+      }
+    } catch (err) {
+      console.error("Agent call failed", err)
+      agentResponse.value = { message: "System failure." }
+    } finally {
+      agentLoading.value = false
     }
   }
 }
@@ -299,6 +325,35 @@ onUnmounted(() => {
               <span class="text-gray-500 block text-[10px] uppercase">Tracks</span>
               <span class="text-green-400 text-sm font-bold">{{ trackCount }}</span>
             </div>
+          </div>
+        </section>
+
+        <!-- Agent Testing Lab -->
+        <section class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
+          <h2 class="text-lg font-bold mb-4 flex items-center">
+            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
+            Agent Lab
+          </h2>
+          <p class="text-[10px] text-gray-400 mb-4 uppercase font-bold tracking-wider">Direct workflow interface</p>
+          <div class="mb-4">
+            <textarea
+              v-model="agentInput"
+              rows="3"
+              placeholder="Tell the agent what to do..."
+              class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-xs text-yellow-100 focus:outline-none focus:border-yellow-500 transition resize-none"
+            ></textarea>
+          </div>
+          <button
+            @click="callAgent"
+            :disabled="agentLoading"
+            class="w-full bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white font-bold py-2 rounded-xl transition duration-300 text-sm"
+          >
+            {{ agentLoading ? 'Agent Thinking...' : 'Send to Agent' }}
+          </button>
+
+          <div v-if="agentResponse" class="mt-4 bg-gray-900/50 p-3 rounded-xl border border-gray-700">
+            <span class="text-[9px] uppercase font-bold text-yellow-500 block mb-2">Agent Response</span>
+            <p class="text-xs text-gray-300 leading-relaxed">{{ agentResponse.message }}</p>
           </div>
         </section>
 

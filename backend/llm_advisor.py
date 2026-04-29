@@ -1,12 +1,13 @@
 import os
 import json
-from openai import OpenAI
-from backend.logger import logger
+from openai import OpenAI, AsyncOpenAI
+from backend.utils.logger import logger
 
 class LLMAdvisor:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        self.base_url = os.getenv("OPENAI_BASE_URL", "http://25.4.74.224:1234/v1")
+        self.async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
 
         self.client = OpenAI(
             api_key=self.api_key,
@@ -78,7 +79,7 @@ class LLMAdvisor:
 
         try:
             response = self.client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+                model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
                 messages=[
                     {"role": "system", "content": "You are a professional music critic. You provide the verbal explanation for a pre-calculated mathematical score."},
                     {"role": "user", "content": prompt}
@@ -117,7 +118,7 @@ class LLMAdvisor:
 
         try:
             response = self.client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+                model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
                 messages=[
                     {"role": "system", "content": "You are a data extraction specialist focused on e-commerce."},
                     {"role": "user", "content": prompt}
@@ -131,16 +132,25 @@ class LLMAdvisor:
             logger.error(f"LLM Scraper Parsing Error: {e}")
             return []
 
-    def agent_call(self, messages):
+    async def agent_call(self, messages, tools_schema=None):
+        """Asynchronous call for the Agent loop"""
         try:
-            response = self.client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-                messages=messages,
-                response_format={"type": "json_object"}
-            )
-            data = json.loads(response.choices[0].message.content)
-            print(data)
-            return data.get('links', [])
+            # Prepare call arguments
+            call_kwargs = {
+                "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                "messages": messages
+            }
+
+            if tools_schema:
+                call_kwargs["tools"] = tools_schema
+                call_kwargs["tool_choice"] = "auto"
+
+            response = await self.async_client.chat.completions.create(**call_kwargs)
+
+            # The model might return tool calls or content
+            message = response.choices[0].message
+            # Return the full message object for the agent loop to process
+            return message
         except Exception as e:
-            logger.error(f"LLM Scraper Parsing Error: {e}")
-            return []
+            logger.error(f"Agent LLM Error: {e}")
+            return None

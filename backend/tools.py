@@ -1,13 +1,14 @@
 import json
 import inspect
+import random
 from typing import Any, Callable, Dict, List, Optional, Type
 from datetime import datetime
 from pydantic import create_model, Field
-from core.logger import console
 import os
 import pathspec
 from enum import Enum
 
+from backend.utils.logger import logger
 
 class Tool:
     def __init__(self, fn: Callable, name: str, description: str, parameters_model: Type, requires_approval: bool = False):
@@ -31,7 +32,7 @@ class Tool:
     async def execute(self, **kwargs) -> Any:
         try:
             validated_params = self.parameters_model(**kwargs)
-   
+
             params_dict = validated_params.model_dump()
 
             if inspect.iscoroutinefunction(self.fn):
@@ -44,30 +45,29 @@ class ToolRegistry:
     def __init__(self):
         self.tools: Dict[str, Tool] = {}
 
-    def register(self, fn: Callable):
-        name = fn.__name__
-        doc = inspect.getdoc(fn) or "No description provided."
-        # Check if function was marked by @requires_approval decorator
-        needs_approval = getattr(fn, "_requires_approval", False)
+    def register_instance_tools(self, instance):
+        """
+        Looks through a class instance for methods marked with @tool
+        and registers them as bound methods (with 'self' already included).
+        """
+        for name, method in inspect.getmembers(instance, predicate=inspect.ismethod):
+            if hasattr(method, "_is_tool"):
+                tool_name = method.__name__
+                doc = inspect.getdoc(method) or "No description."
 
-        # Extract parameters for Pydantic model
-        sig = inspect.signature(fn)
-        fields = {}
-        for param_name, param in sig.parameters.items():
-            if param_name == "self": continue
+                # Extract parameters for Pydantic model
+                sig = inspect.signature(method)
+                fields = {}
+                for p_name, param in sig.parameters.items():
+                    # Note: 'inspect.ismethod' returns bound methods,
+                    # so 'self' is ALREADY REMOVED from the signature.
+                    annotation = param.annotation if param.annotation != inspect.Parameter.empty else Any
+                    default = param.default if param.default != inspect.Parameter.empty else ...
+                    fields[p_name] = (annotation, default)
 
-            # Default to Any if no type hint
-            annotation = param.annotation if param.annotation != inspect.Parameter.empty else Any
-            # Handle defaults
-            default = param.default if param.default != inspect.Parameter.empty else ...
-
-            fields[param_name] = (annotation, default)
-
-        # Dynamically create a Pydantic model for parameter validation
-        model = create_model(f"{name}_params", **fields)
-
-        self.tools[name] = Tool(fn, name, doc, model, requires_approval=needs_approval)
-        return fn
+                model = create_model(f"{tool_name}_params", **fields)
+                self.tools[tool_name] = Tool(method, tool_name, doc, model)
+                logger.db(f"Registered Agent Tool: {tool_name}")
 
     def get_all_schemas(self) -> List[Dict[str, Any]]:
         return [tool.get_schema() for tool in self.tools.values()]
@@ -76,8 +76,12 @@ class ToolRegistry:
 registry = ToolRegistry()
 
 def tool(fn: Callable):
-    """Decorator to register a tool."""
-    return registry.register(fn)
+    """
+    Decorator to mark a function as a tool.
+    It doesn't register it yet; registration happens when an instance is created.
+    """
+    fn._is_tool = True
+    return fn
 
 def requires_approval(fn: Callable):
     """Decorator to mark a tool as requiring human approval before execution."""
@@ -86,8 +90,69 @@ def requires_approval(fn: Callable):
 
 # --- Core Lab Tools ---
 
-@tool
-def get_time():
-    """Returns the current system time. Useful for temporal reasoning."""
-    return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z%z")
+class MusicAgentTools:
+    def __init__(self, bridge):
+        self.bridge = bridge
+        # Import inside to avoid circular imports if necessary
+        from backend.lastfm_client import LastFMClient
+        self.lastfm = LastFMClient()
 
+    @tool
+    def get_time(self):
+        """Returns the current system time. Useful for temporal reasoning."""
+        return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z%z")
+
+    @tool
+    def pick_artist_scope(self):
+        """
+        Randomly picks an artist from one of the user's taste clusters.
+        Use this to narrow the search scope for an album discovery session.
+        Returns the artist name as a string.
+        """
+        engine = self.bridge.cluster_engine
+
+        # Check if engine has processed data yet
+        if not engine.cluster_to_artists:
+            logger.ai("Fitting taste clusters before picking artist scope...")
+            all_prefs = self.bridge.db.get_all_features()
+            if not all_prefs:
+                return "Error: User profile is empty. Cannot pick an artist scope without synced history."
+            engine.fit_clusters(all_prefs)
+
+        if not engine.cluster_to_artists:
+            return "Error: Clustering yielded no valid artist groups."
+
+        # Pick a random cluster index
+        cluster_ids = list(engine.cluster_to_artists.keys())
+        chosen_id = random.choice(cluster_ids)
+
+        # Pick a random artist from that specific cluster
+        artists_in_cluster = list(engine.cluster_to_artists[chosen_id])
+        chosen_artist = random.choice(artists_in_cluster)
+
+        logger.ai(f"Selected Artist Scope: '{chosen_artist}' (from taste cluster #{chosen_id})")
+        return chosen_artist
+
+    @tool
+    def inspect_album(self, artist):
+        """Takes an artist and retrieves a sample album to analyze.
+        Calculates a compatibility score (0-100) against the user's music taste.
+        """
+        logger.ai(f"Inspecting work by artist: {artist}")
+        album_id = self.bridge.client.get_album_by_artist(artist)
+
+        if not album_id:
+            return f"Could not find any albums for artist '{artist}' on Deezer."
+
+        logger.ai(f"Analyzing album ID: {album_id}")
+        score = self.bridge._run_album_analysis_logic(None, album_id)
+        logger.ai(f"Final compatibility score for {artist}: {score}%")
+        return f"The compatibility score for the album by {artist} is {score}%."
+
+    @tool
+    def get_similar_artists(self, artist: str):
+        """Returns list of three similar artists for a given artist name."""
+        # Fix: Ensure the artist parameter is passed to the client
+        sim_artists = self.bridge.lfmclient.get_similar_artists(artist)
+        logger.ai(sim_artists)
+        return sim_artists

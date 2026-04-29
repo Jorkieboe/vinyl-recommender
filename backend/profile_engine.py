@@ -1,4 +1,5 @@
 import json
+import random
 from collections import defaultdict
 import numpy as np
 from sklearn.cluster import KMeans
@@ -8,7 +9,7 @@ import matplotlib
 # Use the 'Agg' backend to allow plot generation in background threads
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from backend.logger import logger
+from backend.utils.logger import logger
 
 class ProfileEngine:
     @staticmethod
@@ -53,6 +54,7 @@ class ClusterEngine:
         self.pca = PCA(n_components=2)
         self.cluster_centers = None
         self.library_vectors = None
+        self.cluster_to_artists = defaultdict(set)
         # Weights for different audio groups
         self.weights = {
             "timbre": 0.50,   # MFCCs
@@ -64,12 +66,17 @@ class ClusterEngine:
         """Converts feature dict to a single flat vector for clustering"""
         return feat['mfcc'] + feat['chroma'] + [feat['spectral_brightness'], feat['tempo']]
 
-    def fit_clusters(self, feature_list):
-        """Trains K-Means on the user's entire library of liked tracks"""
-        if not feature_list:
+    def fit_clusters(self, data_list):
+        """
+        Trains K-Means on the user's entire library of liked tracks.
+        data_list: List of dicts with {"artist": str, "features": dict}
+        """
+        if not data_list:
             return None
 
-        self.library_vectors = np.array([self._flatten(f) for f in feature_list])
+        # Reset cluster mapping
+        self.cluster_to_artists = defaultdict(set)
+        self.library_vectors = np.array([self._flatten(d['features']) for d in data_list])
 
         # Adjust cluster count if library is smaller than requested K
         actual_clusters = min(len(self.library_vectors), self.n_clusters)
@@ -79,6 +86,13 @@ class ClusterEngine:
         scaled_vectors = self.scaler.fit_transform(self.library_vectors)
         self.kmeans.fit(scaled_vectors)
         self.cluster_centers = self.kmeans.cluster_centers_
+
+        # Map artists to clusters based on K-Means results
+        labels = self.kmeans.labels_
+        for idx, label in enumerate(labels):
+            artist_name = data_list[idx]['artist']
+            self.cluster_to_artists[int(label)].add(artist_name)
+
         return self.cluster_centers
 
     def get_best_similarity(self, track_features):

@@ -3,7 +3,7 @@ import librosa
 import yaml
 import os
 from transformers import ClapModel, ClapProcessor
-from backend.logger import logger
+from backend.utils.logger import logger
 
 class ClapAnalyzer:
     def __init__(self):

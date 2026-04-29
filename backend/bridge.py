@@ -1,4 +1,5 @@
 import threading
+import asyncio
 import numpy as np
 import os
 import re
@@ -7,13 +8,16 @@ from backend.database import Database
 from backend.llm_advisor import LLMAdvisor
 from backend.scraper import MarketplaceScraper
 from backend.profile_engine import ProfileEngine, ClusterEngine
-from backend.logger import logger
+from backend.utils.logger import logger
+from backend.agent import Agentloop
+from backend.lastfm_client import LastFMClient
 
 class Bridge:
     def __init__(self):
         self.db = Database()
         self.client = DeezerClient()
         self.advisor = LLMAdvisor()
+        self.lfmclient = LastFMClient()
         self.scraper = MarketplaceScraper(self.advisor)
         self.profile_engine = ProfileEngine()
         self.cluster_engine = ClusterEngine(n_clusters=5)
@@ -155,36 +159,45 @@ class Bridge:
                     album_map[alb_id] = t['id']
 
             for alb_id, sample_track_id in album_map.items():
-                # Only analyze if we haven't already or if it meets the criteria
                 unique_count = self._count_unique_tracks(alb_id)
                 if unique_count >= 3:
                     logger.analysis(f"Flow Discovery: Analyzing album {alb_id} (Size: {unique_count})")
-                    # Reuse existing analysis logic via a direct call to the worker logic
-                    # We don't call analyze_album_for_track directly to avoid nested threads
                     self._run_album_analysis_logic(sample_track_id)
 
         threading.Thread(target=flow_worker, daemon=True).start()
         return {"status": "success", "message": "Flow discovery started"}
 
-    def _run_album_analysis_logic(self, track_id):
+    def _run_album_analysis_logic(self, track_id, album_id):
         """Synchronous version of the analysis worker logic for internal use"""
-        
-        track_meta = self.client.get_track(track_id)
-        if not track_meta: return
+        target_id = album_id
 
-        
-
-        album_id = track_meta['album']['id']
-        cached = self.db.get_scanned_album(album_id)
-        if cached: return
+        # If a track ID was provided, resolve the album ID from it first
+        if track_id:
+            track_meta = self.client.get_track(track_id)
+            if not track_meta: return 0
+            target_id = track_meta['album']['id']
+            album_info = {
+                "title": track_meta['album']['title'],
+                "artist": track_meta['artist']['name'],
+                "cover_url": track_meta['album'].get('cover_medium', '')
+            }
+        else:
+            # Fetch album metadata directly if no track was provided
+            album_meta = self.client.get_album(target_id)
+            if not album_meta: return 0
+            album_info = {
+                "title": album_meta['title'],
+                "artist": album_meta['artist']['name'],
+                "cover_url": album_meta.get('cover_medium', '')
+            }
 
         # Perform logic similar to analysis_worker in analyze_album_for_track
-        all_features = self.db.get_all_features()
+        all_prefs = self.db.get_all_features()
         user_profile = self.db.get_global_profile()
-        if not all_features: return
+        if not all_prefs: return 0
 
-        self.cluster_engine.fit_clusters(all_features)
-        album_tracks = self.client.get_album_tracks(album_id)
+        self.cluster_engine.fit_clusters(all_prefs)
+        album_tracks = self.client.get_album_tracks(target_id)
         track_scores = []
         album_feature_history = []
 
@@ -215,9 +228,7 @@ class Bridge:
                     track_scores.append({"title": full_t['title'], "similarity": similarity, "tier": tier, "semantic_tags": semantic_tags})
                 os.remove(path)
 
-        logger.analysis(track_scores)
-
-        if not track_scores: return
+        if not track_scores: return 0
 
         sims = [s['similarity'] for s in track_scores]
         n_anchors = len([s for s in sims if s >= 0.80])
@@ -230,19 +241,20 @@ class Bridge:
         final_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
         if n_anchors == 0: final_score = min(final_score, 30)
 
-        album_info = {"title": track_meta['album']['title'], "artist": track_meta['artist']['name'], "cover_url": track_meta['album'].get('cover_medium', '')}
         journey_data = {"anchors": n_anchors, "inner_bridges": n_inner, "outer_bridges": n_outer, "horizon": n_horizon, "calculated_score": final_score}
         insight = self.advisor.get_album_insight(album_info, track_scores, journey_data, user_profile)
         insight['calculated_confidence_math'] = final_score
         insight['is_complete'] = False if final_score > 60 else True
 
-        self.db.save_scanned_album(album_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+        self.db.save_scanned_album(target_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
 
         if final_score > 60:
             acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
             insight['acquisition_links'] = acquisition_links
             insight['is_complete'] = True
-            self.db.save_scanned_album(album_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+            self.db.save_scanned_album(target_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+
+        return final_score
 
     def get_album_analysis(self, album_id):
         """Returns cached analysis for an album if it exists"""
@@ -268,13 +280,13 @@ class Bridge:
             logger.analysis(f"Analyzing album: {track_meta['album']['title']}")
 
             # 1. Prepare User Taste Clusters & Global Profile
-            all_features = self.db.get_all_features()
+            all_prefs = self.db.get_all_features()
             user_profile = self.db.get_global_profile()
-            if not all_features:
+            if not all_prefs:
                 logger.warning("No user preferences found. Please sync first.")
                 return
 
-            self.cluster_engine.fit_clusters(all_features)
+            self.cluster_engine.fit_clusters(all_prefs)
 
             # 2. Get Album Tracks and score against nearest cluster
             album_tracks = self.client.get_album_tracks(album_id)
@@ -469,3 +481,16 @@ class Bridge:
                 ui_res[layer] = [[label, prob] for label, prob in sorted_labels[:3]]
             return {"status": "success", "data": ui_res}
         return {"status": "pending"}
+
+    def call_agent(self, text):
+        """Calls the AI agent loop with user input"""
+
+        logger.ai(f"Direct Agent call: {text}")
+        agent = Agentloop(bridge=self)
+        try:
+            # Use asyncio.run to execute the coroutine and return the result synchronously to the bridge
+            result = asyncio.run(agent.run(text))
+            return {"status": "success", "data": result}
+        except Exception as e:
+            logger.error(f"Agent Bridge Error: {e}")
+            return {"status": "error", "message": str(e)}

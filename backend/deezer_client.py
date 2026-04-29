@@ -3,7 +3,7 @@ import librosa
 import numpy as np
 import os
 import tempfile
-from backend.logger import logger
+from backend.utils.logger import logger
 
 class DeezerClient:
     BASE_URL = "https://api.deezer.com"
@@ -43,6 +43,37 @@ class DeezerClient:
             return response.json()
         except Exception as e:
             logger.error(f"Error fetching track: {e}")
+            return None
+
+    def get_album_by_artist(self, query):
+        """Searches for albums by a specific artist and returns the first matching ID"""
+        try:
+            logger.ai(f'Searching Deezer for artist: {query}')
+            response = requests.get(f"{self.BASE_URL}/search/album?q=artist:\"{query}\"&strict=on&limit=5")
+            response.raise_for_status()
+            res = response.json()
+
+            albums = res.get('data', [])
+            for alb in albums:
+                # Check for strict match if possible
+                artist_name = alb.get('artist', {}).get('name', '')
+                if artist_name.lower() == query.lower():
+                    logger.ai(f"Found album '{alb.get('title')}' (ID: {alb.get('id')})")
+                    return alb.get('id')
+
+            return None
+        except Exception as e:
+            logger.error(f"Error searching album by artist: {e}")
+            return None
+
+    def get_album(self, album_id):
+        """Fetches album metadata"""
+        try:
+            response = requests.get(f"{self.BASE_URL}/album/{album_id}")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error fetching album {album_id}: {e}")
             return None
 
     def get_album_tracks(self, album_id):

@@ -3,16 +3,19 @@
     ".env",
     "README.md",
     "backend/__init__.py",
+    "backend/agent.py",
     "backend/bridge.py",
     "backend/clap_analyzer.py",
     "backend/clap_prompts.yaml",
     "backend/database.py",
     "backend/deezer_client.py",
+    "backend/lastfm_client.py",
     "backend/llm_advisor.py",
-    "backend/logger.py",
     "backend/main.py",
     "backend/profile_engine.py",
     "backend/scraper.py",
+    "backend/tools.py",
+    "backend/utils/logger.py",
     "concept.md",
     "frontend/index.html",
     "frontend/package.json",
@@ -27,13 +30,18 @@
     "project-starter.json",
     "release.bat",
     "requirements.txt",
+    "test.ipynb",
     "todo.md",
     "version.txt"
   ],
   "unknown_files": [
+    "backend/agent.py",
     "backend/clap_prompts.yaml",
-    "backend/logger.py",
-    "backend/profile_engine.py"
+    "backend/lastfm_client.py",
+    "backend/profile_engine.py",
+    "backend/tools.py",
+    "backend/utils/logger.py",
+    "test.ipynb"
   ],
-  "total_tokens": 19090
+  "total_tokens": 20338
 }

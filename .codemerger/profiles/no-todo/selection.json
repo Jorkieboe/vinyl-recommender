@@ -1,35 +1,35 @@
 [
   {
     "path": "backend/bridge.py",
-    "tokens": 4564,
+    "tokens": 4769,
     "ignoreTokens": false,
-    "lines": 466,
-    "mtime": 1777016281.9556644,
-    "hash": "fd3c7f4ec712183400ec4c70ffcfec077457332e"
+    "lines": 496,
+    "mtime": 1777478364.1423905,
+    "hash": "a63fcc7399f5adddeb1cb90f5e848348967d1c67"
   },
   {
     "path": "backend/database.py",
-    "tokens": 1493,
+    "tokens": 1520,
     "ignoreTokens": false,
-    "lines": 209,
-    "mtime": 1777016282.0091703,
-    "hash": "22c1353382fadb56447503edf048b7c6fa26b407"
+    "lines": 210,
+    "mtime": 1777473383.9987743,
+    "hash": "62477ce63779906379a8865700bbf87f0a453bcc"
   },
   {
     "path": "backend/deezer_client.py",
-    "tokens": 850,
+    "tokens": 1120,
     "ignoreTokens": false,
-    "lines": 105,
-    "mtime": 1777016282.0593307,
-    "hash": "3fd0ad2581035030bf869f95c600822613fc71c0"
+    "lines": 136,
+    "mtime": 1777478364.4391344,
+    "hash": "ca426e47b9a84efa58372f2f8b3b57874fdbf188"
   },
   {
     "path": "backend/llm_advisor.py",
-    "tokens": 1352,
+    "tokens": 1567,
     "ignoreTokens": false,
-    "lines": 131,
-    "mtime": 1776950160.5823658,
-    "hash": "8b8d6f2b24bc5311bb01ea75b58130d80ea86288"
+    "lines": 157,
+    "mtime": 1777470959.968937,
+    "hash": "e26fdfffa177ab78c4cc1c311d7c9af10a0498c5"
   },
   {
     "path": "backend/main.py",
@@ -49,11 +49,11 @@
   },
   {
     "path": "frontend/src/App.vue",
-    "tokens": 7692,
+    "tokens": 8223,
     "ignoreTokens": false,
-    "lines": 711,
-    "mtime": 1777016282.1114142,
-    "hash": "176fe62a5e6e5796fe3c462e737e1827d2b18dbe"
+    "lines": 766,
+    "mtime": 1777456757.2978146,
+    "hash": "be7f0da92046a5ffa4322fe998bbb34a5666e3c6"
   },
   {
     "path": "frontend/src/main.js",
@@ -149,16 +149,30 @@
   },
   {
     "path": "backend/profile_engine.py",
-    "tokens": 1582,
-    "lines": 160,
-    "mtime": 1776950160.788233,
-    "hash": "c4b23db151447012006a866bd76812bdb02d46fe"
+    "tokens": 1689,
+    "lines": 174,
+    "mtime": 1777473384.0582042,
+    "hash": "17a4da22efb1f28289eeccea5e4cce4b64c72ba3"
   },
   {
-    "path": "backend/logger.py",
+    "path": "backend/agent.py",
+    "tokens": 590,
+    "ignoreTokens": false,
+    "lines": 82,
+    "mtime": 1777470960.0239398,
+    "hash": "19eb451fd97a40e01ada6e7f7bedf98ff889c270"
+  },
+  {
+    "path": "backend/utils/logger.py",
     "tokens": 866,
-    "lines": 108,
-    "mtime": 1776950899.2293012,
-    "hash": "06205279f30e39da3fb4350d2f6c2ceceaf77f67"
+    "ignoreTokens": false
+  },
+  {
+    "path": "backend/tools.py",
+    "tokens": 1241,
+    "ignoreTokens": false,
+    "lines": 158,
+    "mtime": 1777478364.5068161,
+    "hash": "45165ac8a827efde69d73d36c8992de015ab7d14"
   }
 ]

@@ -158,10 +158,11 @@ class Database:
             } for r in rows]
 
     def get_all_features(self):
+        """Returns list of dicts containing artist and features for every synced track"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT features_json FROM user_preferences')
-            return [json.loads(row[0]) for row in cursor.fetchall()]
+            cursor.execute('SELECT artist, features_json FROM user_preferences')
+            return [{"artist": r[0], "features": json.loads(r[1])} for r in cursor.fetchall()]
 
     def save_scanned_album(self, album_id, title, artist, confidence_score, analysis_json, cover_url):
         with self.get_connection() as conn:

@@ -4,7 +4,7 @@ import shutil
 from dotenv import load_dotenv
 from backend.bridge import Bridge
 from backend.database import Database
-from backend.logger import logger
+from backend.utils.logger import logger
 
 def check_ffmpeg():
     if not shutil.which('ffmpeg'):

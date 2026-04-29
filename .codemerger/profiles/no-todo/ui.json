@@ -1,4 +1,7 @@
 {
   "name": "no todo",
-  "expanded_dirs": []
+  "expanded_dirs": [
+    "backend",
+    "backend/utils"
+  ]
 }

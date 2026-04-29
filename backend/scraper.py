@@ -6,7 +6,7 @@ except ImportError:
 import urllib.parse
 import time
 import random
-from backend.logger import logger
+from backend.utils.logger import logger
 
 class MarketplaceScraper:
     def __init__(self, advisor):
