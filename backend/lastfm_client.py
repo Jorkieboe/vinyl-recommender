@@ -7,7 +7,7 @@ class LastFMClient:
         self.api_key = os.getenv("LASTFM_API_KEY")
         self.base_url = "http://ws.audioscrobbler.com/2.0/"
 
-    def get_similar_artists(self, artist_name, limit=3):
+    def get_similar_artists(self, artist_name, limit=5):
         params = {
             "method": "artist.getsimilar",
             "artist": artist_name,

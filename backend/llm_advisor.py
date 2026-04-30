@@ -2,6 +2,19 @@ import os
 import json
 from openai import OpenAI, AsyncOpenAI
 from backend.utils.logger import logger
+from pydantic import BaseModel
+
+class albumOutput(BaseModel):
+    artist: str
+    album: str
+    sonic_breakdown: str
+    filler_tracks: list[str]
+
+class resultOutput(BaseModel):
+    artist: str
+    album: str
+    album_id: float
+    reasoning: str
 
 class LLMAdvisor:
     def __init__(self):
@@ -17,35 +30,6 @@ class LLMAdvisor:
     def get_album_insight(self, album_meta, track_scores, journey_data, user_profile):
         """
         Takes raw similarity math and CLAP semantic tags to generate a human breakdown.
-        """
-        prompt = f"""
-        You are a music expert helping someone decide if a vinyl record is worth buying.
-        Vinyl is expensive, so every track needs to be a "keeper."
-
-        YOUR TASTE PROFILE (What you usually love):
-        {json.dumps(user_profile, indent=2)}
-
-        ALBUM TO EVALUATE: {album_meta['title']} by {album_meta['artist']}
-
-        TRACK LIST DATA:
-        {json.dumps(track_scores, indent=2)}
-
-        OVERALL CONFIDENCE SCORE: {journey_data['calculated_score']}%
-
-        CATEGORIES EXPLAINED:
-        - "Instant Hit": Tracks that sound exactly like what you already love. Total comfort.
-        - "Natural Grower": These feel fresh but familiar. You'll likely love them after 1 or 2 listens.
-        - "Slow Burner": A bit different from your usual style. Might take some effort to appreciate.
-        - "Risky": These sound very different from your usual taste. On a vinyl, these are the "skips."
-
-        YOUR TASK:
-        1. Write a "Sonic Breakdown" (2-3 sentences). Compare the tags of the album tracks to the user's taste profile.
-        2. Explain why the score is high or low. (e.g., "This is a safe buy because it's packed with instant hits," or "This is risky because half the album consists of experimental tracks you might skip.")
-        3. Identify any "Filler Tracks" (the ones labeled "Risky") by name.
-
-        Response MUST be a valid JSON object with:
-        "sonic_breakdown": "string",
-        "filler_tracks": ["track_title1", "track_title2"]
         """
         prompt = f"""
         You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums.
@@ -78,15 +62,20 @@ class LLMAdvisor:
         """
 
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.chat.completions.parse(
                 model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
                 messages=[
                     {"role": "system", "content": "You are a professional music critic. You provide the verbal explanation for a pre-calculated mathematical score."},
                     {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"}
+                response_format=albumOutput
             )
-            return json.loads(response.choices[0].message.content)
+            message = response.choices[0].message
+            if hasattr(message, 'parsed') and message.parsed:
+                return message.parsed.model_dump()
+
+            # Fallback for unexpected formats
+            return json.loads(message.content)
         except Exception as e:
             logger.error(f"LLM Error: {e}")
             return {
@@ -151,6 +140,45 @@ class LLMAdvisor:
             message = response.choices[0].message
             # Return the full message object for the agent loop to process
             return message
+        except Exception as e:
+            logger.error(f"Agent LLM Error: {e}")
+            return None
+
+    async def final_decision (self, messages):
+        """Asynchronous call for the Agent loop"""
+        try:
+
+            system_prompt =  {"role": "system", "content": """
+                    You are a vinyl recommender and the final step on the agent.
+                    I want you to respond into the following json format
+                        {
+                            artist: string
+                            album: string
+                            album_id: int
+                            reasoning: string
+                        }
+
+                    """
+            }
+
+            combined_messages = [system_prompt] + messages
+            # Prepare call arguments
+            call_kwargs = {
+                "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                "messages": combined_messages,
+                "response_format": resultOutput
+            }
+
+            response = await self.async_client.chat.completions.parse(**call_kwargs)
+
+            # The model might return tool calls or content
+            message = response.choices[0].message
+
+            # If using parse, the structured result is in .parsed
+            if hasattr(message, 'parsed') and message.parsed:
+                return message.parsed.model_dump()
+
+            return message.content
         except Exception as e:
             logger.error(f"Agent LLM Error: {e}")
             return None

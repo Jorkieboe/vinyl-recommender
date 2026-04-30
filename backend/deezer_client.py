@@ -6,7 +6,9 @@ import tempfile
 from backend.utils.logger import logger
 
 class DeezerClient:
-    BASE_URL = "https://api.deezer.com"
+    def __init__(self, bridge):
+        self.BASE_URL = "https://api.deezer.com"
+        self.bridge = bridge
 
     def get_loved_tracks(self, user_id):
         """Fetches the 'Loved Tracks' for a specific user ID (Top 50 via pagination)"""
@@ -54,12 +56,13 @@ class DeezerClient:
             res = response.json()
 
             albums = res.get('data', [])
+
             for alb in albums:
                 # Check for strict match if possible
                 artist_name = alb.get('artist', {}).get('name', '')
-                if artist_name.lower() == query.lower():
-                    logger.ai(f"Found album '{alb.get('title')}' (ID: {alb.get('id')})")
-                    return alb.get('id')
+                is_found = self.bridge.db.get_scanned_album(alb.get('id', None))
+                if artist_name.lower() == query.lower() and not is_found:
+                    return alb.get('id', ''), alb.get('title', '')
 
             return None
         except Exception as e:

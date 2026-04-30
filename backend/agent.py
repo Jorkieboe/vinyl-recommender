@@ -13,15 +13,26 @@ class Agentloop:
 
         self.messageHistory = []
         self._initialize_agent()
-        self.max_steps = 10
+        self.max_steps = 25
         self.llm = LLMAdvisor()
 
     def _initialize_agent(self):
         base_prompt = """
         You are a vinyl recommender agent.
         Your goal is to find an music album that fit the user taste.
+
+        You need pick between exploration and exploitation
+        exploration: Make a pivot and switch to another liked genre or try to explore other path what does not seem to fit at first.
+        Exploitation: Go deeper and explore more of the same artist or try related artists
+
         Your can use different tools to explora artist and albums and calculate sonic simularity between artists and the users taste.
         Be concise and analytical.
+
+        To reach the goal to following criteria must be met:
+        - Never recommend below the 60% simularity
+        - if the similarity is on the lower side like 70% try to look for better option before commiting to this one.
+
+        if none of the criteria has been met but the last step is reached. recommend the best one yet
 
         if the goal is satisfied return finish
 
@@ -49,7 +60,7 @@ class Agentloop:
             # Add the assistant's message to history (required for OpenAI-style tool flows)
             self.messageHistory.append(response_message)
 
-            # Check for Tool Calls 
+            # Check for Tool Calls
             if response_message.tool_calls:
                 for tool_call in response_message.tool_calls:
                     func_name = tool_call.function.name
@@ -77,9 +88,26 @@ class Agentloop:
             content = response_message.content or ""
 
             if "finish" in content.lower() or step == self.max_steps:
-                # Clean up the "finish" keyword for UI presentation if desired
+
                 display_msg = content.replace("finish", "").replace("FINISH", "").strip()
-                return {"message": display_msg or "Task completed."}
+                for i, item in enumerate(self.messageHistory):
+                    if item.get("role") == "system":
+                        self.messageHistory.pop(i)
+                        break
+                
+                response_message = await self.llm.final_decision(self.messageHistory)
+
+                logger.result(response_message)
+
+                if isinstance(response_message, dict):
+                    # Format a nice string for the frontend
+                    artist = response_message.get('artist', 'Unknown Artist')
+                    album = response_message.get('album', 'Unknown Album')
+                    reasoning = response_message.get('reasoning', '')
+                    msg_str = f"Recommended: {artist} - {album}\n\nReasoning: {reasoning}"
+                    return {"message": msg_str, "data": response_message}
+
+                return {"message": str(response_message) or "Task completed."}
 
             return {"message": content}
 

@@ -190,6 +190,22 @@ class Database:
                 }
             return None
 
+    def get_scanned_album(self, album_id):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM scanned_albums WHERE album_id = ?', (album_id,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "album_id": row[0],
+                    "title": row[1],
+                    "artist": row[2],
+                    "confidence_score": row[3],
+                    "cover_url": row[4],
+                    "analysis_json": json.loads(row[5])
+                }
+            return None
+
     def save_clap_result(self, track_id, results):
         with self.get_connection() as conn:
             cursor = conn.cursor()

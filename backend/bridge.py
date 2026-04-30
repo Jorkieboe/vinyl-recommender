@@ -15,7 +15,7 @@ from backend.lastfm_client import LastFMClient
 class Bridge:
     def __init__(self):
         self.db = Database()
-        self.client = DeezerClient()
+        self.client = DeezerClient(bridge=self)
         self.advisor = LLMAdvisor()
         self.lfmclient = LastFMClient()
         self.scraper = MarketplaceScraper(self.advisor)
@@ -167,7 +167,7 @@ class Bridge:
         threading.Thread(target=flow_worker, daemon=True).start()
         return {"status": "success", "message": "Flow discovery started"}
 
-    def _run_album_analysis_logic(self, track_id, album_id):
+    def _run_album_numerical_analysis_logic(self, track_id, album_id):
         """Synchronous version of the analysis worker logic for internal use"""
         target_id = album_id
 
