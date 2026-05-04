@@ -31,6 +31,7 @@ class Agentloop:
         To reach the goal to following criteria must be met:
         - Never recommend below the 60% simularity
         - if the similarity is on the lower side like 70% try to look for better option before commiting to this one.
+        - if you see not much improvements after exploring more option pick the highest rated
 
         if none of the criteria has been met but the last step is reached. recommend the best one yet
 
@@ -53,7 +54,7 @@ class Agentloop:
 
             response_message = await self.llm.agent_call(self.messageHistory, tools_schema=tools_schema)
 
-            logger.ai(response_message)
+            logger.result(response_message)
             if not response_message:
                 return {"message": "The AI failed to generate a response."}
 
@@ -86,29 +87,24 @@ class Agentloop:
 
             # If there are no tool calls, it's a final response
             content = response_message.content or ""
+            logger.result(content)
 
             if "finish" in content.lower() or step == self.max_steps:
+                logger.result("Agent optimization complete. Finalizing recommendation...")
 
-                display_msg = content.replace("finish", "").replace("FINISH", "").strip()
-                for i, item in enumerate(self.messageHistory):
-                    if item.get("role") == "system":
-                        self.messageHistory.pop(i)
-                        break
-                
-                response_message = await self.llm.final_decision(self.messageHistory)
+                # 1. Ask the LLM for the structured final choice based on the history
+                final_decision = await self.llm.final_decision(self.messageHistory)
 
-                logger.result(response_message)
+                # 2. Extract the ID from the structured result
+                if isinstance(final_decision, dict) and final_decision.get('album_id'):
+                    target_album_id = int(final_decision['album_id'])
 
-                if isinstance(response_message, dict):
-                    # Format a nice string for the frontend
-                    artist = response_message.get('artist', 'Unknown Artist')
-                    album = response_message.get('album', 'Unknown Album')
-                    reasoning = response_message.get('reasoning', '')
-                    msg_str = f"Recommended: {artist} - {album}\n\nReasoning: {reasoning}"
-                    return {"message": msg_str, "data": response_message}
+                    # 3. Run the final semantic/scraping logic (Awaited)
+                    score, insight = await self.bridge._run_album_semantical_analysis_logic(None, target_album_id)
 
-                return {"message": str(response_message) or "Task completed."}
+                    return {"status": "success", "message": insight}
 
-            return {"message": content}
+                # Fallback if no structured ID was found
+                return {"message": content}
 
         return {"message": "Agent reached maximum execution steps."}

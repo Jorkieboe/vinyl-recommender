@@ -11,6 +11,7 @@ from backend.profile_engine import ProfileEngine, ClusterEngine
 from backend.utils.logger import logger
 from backend.agent import Agentloop
 from backend.lastfm_client import LastFMClient
+import json
 
 class Bridge:
     def __init__(self):
@@ -207,12 +208,6 @@ class Bridge:
             path = self.client.download_preview(full_t['preview'], full_t['id'])
             if path:
                 feats = self.client.analyze_audio(path)
-                clap_res = self.db.get_clap_result(full_t['id'])
-                if not clap_res:
-                    from backend.clap_analyzer import ClapAnalyzer
-                    if not hasattr(self, 'clap_analyzer'): self.clap_analyzer = ClapAnalyzer()
-                    clap_res = self.clap_analyzer.analyze(path)
-                    if clap_res: self.db.save_clap_result(full_t['id'], clap_res)
                 if feats:
                     album_feature_history.append(feats)
                     similarity = self.cluster_engine.get_best_similarity(feats)
@@ -220,12 +215,7 @@ class Bridge:
                     if similarity >= 0.80: tier = "Instant Hit"
                     elif similarity >= 0.70: tier = "Natural Grower"
                     elif similarity >= 0.60: tier = "Slow Burner"
-                    semantic_tags = {}
-                    if clap_res:
-                        for layer, labels in clap_res.items():
-                            top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
-                            semantic_tags[layer] = [l[0] for l in top_labels]
-                    track_scores.append({"title": full_t['title'], "similarity": similarity, "tier": tier, "semantic_tags": semantic_tags})
+                    track_scores.append({"title": full_t['title'], "similarity": similarity, "tier": tier})
                 os.remove(path)
 
         if not track_scores: return 0
@@ -241,20 +231,94 @@ class Bridge:
         final_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
         if n_anchors == 0: final_score = min(final_score, 30)
 
+        self.db.save_scanned_album(
+            target_id,
+            album_info['title'],
+            album_info['artist'],
+            final_score,
+            n_anchors,
+            n_inner,
+            n_outer,
+            n_horizon,
+            album_info['cover_url'],
+            analysis_text=''
+        )
+
         journey_data = {"anchors": n_anchors, "inner_bridges": n_inner, "outer_bridges": n_outer, "horizon": n_horizon, "calculated_score": final_score}
+
+        return journey_data
+
+    async def _run_album_semantical_analysis_logic(self, track_id, album_id):
+        """Asynchronous version of the analysis worker logic for internal use (Agent)"""
+        target_id = album_id
+
+        # If a track ID was provided, resolve the album ID from it first
+        if track_id:
+            track_meta = self.client.get_track(track_id)
+            if not track_meta: return 0
+            target_id = track_meta['album']['id']
+            album_info = {
+                "title": track_meta['album']['title'],
+                "artist": track_meta['artist']['name'],
+                "cover_url": track_meta['album'].get('cover_medium', '')
+            }
+        else:
+            # Fetch album metadata directly if no track was provided
+            album_meta = self.client.get_album(target_id)
+            if not album_meta: return 0
+            album_info = {
+                "title": album_meta['title'],
+                "artist": album_meta['artist']['name'],
+                "cover_url": album_meta.get('cover_medium', '')
+            }
+
+        # Perform logic similar to analysis_worker in analyze_album_for_track
+        all_prefs = self.db.get_all_features()
+        user_profile = self.db.get_global_profile()
+        if not all_prefs: return 0
+        album_tracks = self.client.get_album_tracks(album_id)
+        track_scores = []
+
+        for t in album_tracks:
+            full_t = self.client.get_track(t['id'])
+            if not full_t or not full_t.get('preview'): continue
+            path = self.client.download_preview(full_t['preview'], full_t['id'])
+            if path:
+                clap_res = self.db.get_clap_result(full_t['id'])
+                if not clap_res:
+                    from backend.clap_analyzer import ClapAnalyzer
+                    if not hasattr(self, 'clap_analyzer'): self.clap_analyzer = ClapAnalyzer()
+                    clap_res = self.clap_analyzer.analyze(path)
+                    if clap_res: self.db.save_clap_result(full_t['id'], clap_res)
+
+                semantic_tags = {}
+                if clap_res:
+                    for layer, labels in clap_res.items():
+                        top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
+                        semantic_tags[layer] = [l[0] for l in top_labels]
+                track_scores.append({"title": full_t['title'],  "semantic_tags": semantic_tags})
+                os.remove(path)
+
+        if not track_scores: return 0
+
+        album_data = self.db.get_scanned_album(album_id)
+        journey_data = {"id": album_id, "anchors": album_data['anchors'], "inner_bridges": album_data['inner_bridge'], "outer_bridges": album_data['outer_bridge'], "horizon": album_data['horizon'], "calculated_score": album_data['confidence_score']}
         insight = self.advisor.get_album_insight(album_info, track_scores, journey_data, user_profile)
-        insight['calculated_confidence_math'] = final_score
-        insight['is_complete'] = False if final_score > 60 else True
 
-        self.db.save_scanned_album(target_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
+        insight['calculated_confidence_math'] = album_data['confidence_score']
+        insight['is_complete'] = False if album_data['confidence_score'] > 60 else True
 
-        if final_score > 60:
-            acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
+        if album_data['confidence_score'] > 60:
+            # Await scraper directly since we are now in an async method
+            acquisition_links = await self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
             insight['acquisition_links'] = acquisition_links
             insight['is_complete'] = True
-            self.db.save_scanned_album(target_id, album_info['title'], album_info['artist'], final_score, insight, album_info['cover_url'])
 
-        return final_score
+            # Mark this album as recommended so the agent doesn't loop back to it
+            self.db.mark_album_as_recommended(album_id)
+
+        logger.ai(insight)
+        return album_data['confidence_score'], insight
 
     def get_album_analysis(self, album_id):
         """Returns cached analysis for an album if it exists"""
@@ -403,14 +467,19 @@ class Bridge:
                 album_info['title'],
                 album_info['artist'],
                 final_score,
-                insight,
-                album_info['cover_url']
+                journey_data['anchors'],
+                journey_data['inner_bridges'],
+                journey_data['outer_bridges'],
+                journey_data['horizon'],
+                album_info['cover_url'],
+                json.dumps(insight)
             )
 
             # 6. Marketplace Scraper (Triggered if score > 60)
             if final_score > 60:
                 logger.scrape(f"Score promising ({final_score}%). Triggering marketplace search...")
-                acquisition_links = self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
+                # Run async scraper inside the analysis thread
+                acquisition_links = asyncio.run(self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode))
 
                 # Update insight with links and mark as complete
                 insight['acquisition_links'] = acquisition_links
@@ -421,8 +490,12 @@ class Bridge:
                     album_info['title'],
                     album_info['artist'],
                     final_score,
-                    insight,
-                    album_info['cover_url']
+                    journey_data['anchors'],
+                    journey_data['inner_bridges'],
+                    journey_data['outer_bridges'],
+                    journey_data['horizon'],
+                    album_info['cover_url'],
+                    json.dumps(insight)
                 )
 
             logger.result(f"Analysis complete for {album_info['title']}")
@@ -433,7 +506,7 @@ class Bridge:
     def manual_marketplace_search(self, artist, album):
         """Manually trigger a marketplace search via Google for UI testing"""
         logger.scrape(f"Manual marketplace search triggered for: {artist} - {album} (Headless: {self.headless_mode})")
-        return self.scraper.get_links(artist, album, headless=self.headless_mode)
+        return asyncio.run(self.scraper.get_links(artist, album, headless=self.headless_mode))
 
     def test_clap_on_track(self, track_id):
         """Tests natural language audio tagging via CLAP for a single track"""

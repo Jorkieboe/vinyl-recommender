@@ -35,8 +35,13 @@ class Database:
                     title TEXT,
                     artist TEXT,
                     confidence_score REAL,
+                    anchors INTEGER DEFAULT 0,
+                    inner_bridge INTEGER DEFAULT 0,
+                    outer_bridge INTEGER DEFAULT 0,
+                    horizon INTEGER DEFAULT 0,
                     cover_url TEXT,
-                    analysis_json TEXT,
+                    analysis_text TEXT,
+                    is_recommended INTEGER DEFAULT 0,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -142,7 +147,7 @@ class Database:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT album_id, title, artist, confidence_score, cover_url, analysis_json
+                SELECT album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url
                 FROM scanned_albums
                 WHERE confidence_score >= ?
                 ORDER BY confidence_score DESC
@@ -152,9 +157,12 @@ class Database:
                 "album_id": r[0],
                 "title": r[1],
                 "artist": r[2],
-                "confidence_score": r[3],
-                "cover_url": r[4],
-                "analysis_json": json.loads(r[5])
+                "anchors": r[3],
+                "inner_bridge": r[4],
+                "outer_bridge": r[5],
+                "horizon": r[6],
+                "cover_url": r[7],
+                "analysis_text": r[8],
             } for r in rows]
 
     def get_all_features(self):
@@ -164,14 +172,14 @@ class Database:
             cursor.execute('SELECT artist, features_json FROM user_preferences')
             return [{"artist": r[0], "features": json.loads(r[1])} for r in cursor.fetchall()]
 
-    def save_scanned_album(self, album_id, title, artist, confidence_score, analysis_json, cover_url):
+    def save_scanned_album(self, album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url, analysis_text, is_recommended=0):
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT OR REPLACE INTO scanned_albums
-                (album_id, title, artist, confidence_score, cover_url, analysis_json)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (album_id, title, artist, confidence_score, cover_url, json.dumps(analysis_json)))
+                (album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url, analysis_text, is_recommended)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url, analysis_text, is_recommended))
             conn.commit()
 
     def get_scanned_album(self, album_id):
@@ -185,26 +193,21 @@ class Database:
                     "title": row[1],
                     "artist": row[2],
                     "confidence_score": row[3],
-                    "cover_url": row[4],
-                    "analysis_json": json.loads(row[5])
+                    "anchors": row[4],
+                    "inner_bridge": row[5],
+                    "outer_bridge": row[6],
+                    "horizon": row[7],
+                    "cover_url": row[8],
+                    "analysis_text": row[9],
+                    "is_recommended": row[10]
                 }
             return None
 
-    def get_scanned_album(self, album_id):
+    def mark_album_as_recommended(self, album_id):
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM scanned_albums WHERE album_id = ?', (album_id,))
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "album_id": row[0],
-                    "title": row[1],
-                    "artist": row[2],
-                    "confidence_score": row[3],
-                    "cover_url": row[4],
-                    "analysis_json": json.loads(row[5])
-                }
-            return None
+            cursor.execute('UPDATE scanned_albums SET is_recommended = 1 WHERE album_id = ?', (album_id,))
+            conn.commit()
 
     def save_clap_result(self, track_id, results):
         with self.get_connection() as conn:

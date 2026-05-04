@@ -16,6 +16,13 @@ class resultOutput(BaseModel):
     album_id: float
     reasoning: str
 
+class vinylOutput(BaseModel):
+    store: str
+    product: str
+    link: str
+    price: str
+
+
 class LLMAdvisor:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
@@ -31,6 +38,11 @@ class LLMAdvisor:
         """
         Takes raw similarity math and CLAP semantic tags to generate a human breakdown.
         """
+
+        # logger.ai(album_meta)
+        # logger.ai(track_scores)
+        # logger.ai(journey_data)
+        # logger.ai(user_profile)
         prompt = f"""
         You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums.
 
@@ -72,6 +84,7 @@ class LLMAdvisor:
             )
             message = response.choices[0].message
             if hasattr(message, 'parsed') and message.parsed:
+                logger.result('is parsed')
                 return message.parsed.model_dump()
 
             # Fallback for unexpected formats
@@ -83,7 +96,7 @@ class LLMAdvisor:
                 "filler_tracks": []
             }
 
-    def parse_scraper_results(self, artist, album, raw_results):
+    async def parse_scraper_results(self, artist, album, raw_results):
         """
         Uses LLM to find the actual purchase link and price from raw HTML/text.
         """
@@ -106,16 +119,22 @@ class LLMAdvisor:
         """
 
         try:
-            response = self.client.chat.completions.create(
+            response = await self.async_client.chat.completions.parse(
                 model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+
                 messages=[
                     {"role": "system", "content": "You are a data extraction specialist focused on e-commerce."},
                     {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"}
+                response_format=vinylOutput
             )
-            data = json.loads(response.choices[0].message.content)
-            print(data)
+            message = response.choices[0].message
+
+            date = None
+
+            if hasattr(message, 'parsed') and message.parsed:
+                data = message.parsed.model_dump()
+            
             return data.get('links', [])
         except Exception as e:
             logger.error(f"LLM Scraper Parsing Error: {e}")
@@ -129,6 +148,8 @@ class LLMAdvisor:
                 "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
                 "messages": messages
             }
+
+            print(messages[len(messages) - 1])
 
             if tools_schema:
                 call_kwargs["tools"] = tools_schema

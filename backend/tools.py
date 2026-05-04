@@ -139,15 +139,22 @@ class MusicAgentTools:
         Calculates a compatibility score (0-100) against the user's music taste.
         """
         logger.ai(f"Inspecting work by artist: {artist}")
-        album_id, album_title = self.bridge.client.get_album_by_artist(artist)
+        result = self.bridge.client.get_album_by_artist(artist)
 
-        if not album_id:
-            return f"Could not find any albums for artist '{artist}' on Deezer."
+        if result is None:
+            return f"Could not find any new/unscanned albums for artist '{artist}' on Deezer."
 
+        album_id, album_title = result
+        
         logger.ai(f"Analyzing album: {album_title}")
-        score = self.bridge._run_album_analysis_logic(None, album_id)
-        logger.ai(f"Final compatibility score for {album_title} by {artist}: {score}%")
-        return f"The compatibility score for the album by {artist} is {score}%."
+        journey_data = self.bridge._run_album_numerical_analysis_logic(None, album_id)
+
+        journey_data["album_title"] = album_title
+        journey_data["album_id"] = album_id
+        journey_data["artist"] = artist
+
+        logger.ai(f"Final compatibility score for {album_title} by {artist}: {journey_data['calculated_score']}%")
+        return json.dumps(journey_data)
 
 
     @tool

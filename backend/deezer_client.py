@@ -51,18 +51,37 @@ class DeezerClient:
         """Searches for albums by a specific artist and returns the first matching ID"""
         try:
             logger.ai(f'Searching Deezer for artist: {query}')
-            response = requests.get(f"{self.BASE_URL}/search/album?q=artist:\"{query}\"&strict=on&limit=5")
+            response = requests.get(f"{self.BASE_URL}/search/album?q=artist:\"{query}\"&limit=5")
             response.raise_for_status()
             res = response.json()
 
             albums = res.get('data', [])
 
             for alb in albums:
-                # Check for strict match if possible
+                alb_id = alb.get('id')
                 artist_name = alb.get('artist', {}).get('name', '')
-                is_found = self.bridge.db.get_scanned_album(alb.get('id', None))
-                if artist_name.lower() == query.lower() and not is_found:
-                    return alb.get('id', ''), alb.get('title', '')
+
+                # Check if it's the correct artist
+                if artist_name.lower() != query.lower():
+                    continue
+
+                cached = self.bridge.db.get_scanned_album(alb_id)
+
+                # If never scanned before, it's a perfect candidate
+                if not cached:
+                    return alb_id, alb.get('title', '')
+
+                # If scanned before, check if it should be skipped
+                if cached.get('is_recommended') == 1:
+                    logger.ai(f"Skipping {alb.get('title')} - Already recommended.")
+                    continue
+
+                if cached.get('confidence_score', 0) < 50:
+                    logger.ai(f"Skipping {alb.get('title')} - Low match score ({cached.get('confidence_score')}%).")
+                    continue
+
+                logger.ai(f"Re-evaluating previously scanned album: {alb.get('title')}")
+                return alb_id, alb.get('title', '')
 
             return None
         except Exception as e:

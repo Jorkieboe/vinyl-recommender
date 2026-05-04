@@ -1,8 +1,9 @@
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright
 try:
-    from playwright_stealth import stealth_sync
+    from playwright_stealth import stealth_async as stealth
 except ImportError:
-    stealth_sync = None
+    stealth = None
 import urllib.parse
 import time
 import random
@@ -12,44 +13,42 @@ class MarketplaceScraper:
     def __init__(self, advisor):
         self.advisor = advisor
 
-    def search_google(self, artist, album, headless=False):
-        """Executes a Google search for Dutch vinyl shops and visits top results"""
+    async def search_google(self, artist, album, headless=False):
+        """Executes an asynchronous Google search for Dutch vinyl shops and visits top results"""
         query = urllib.parse.quote(f"{artist} {album} vinyl nl")
         url = f"https://www.google.com/search?q={query}&hl=nl"
 
+        logger.scrape(f"Start scraping on {url}")
+
         results = []
         try:
-            with sync_playwright() as p:
-                logger.scrape(f"Launching scraper (Headless={headless}) for Google Search: {url}")
-                browser = p.chromium.launch(headless=headless, args=["--disable-blink-features=AutomationControlled"])
+            async with async_playwright() as p:
+                logger.scrape(f"Launching async scraper (Headless={headless}) for Google Search: {url}")
+                browser = await p.chromium.launch(headless=headless, args=["--disable-blink-features=AutomationControlled"])
 
                 # Use a modern user agent to avoid bot detection
                 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                context = browser.new_context(user_agent=user_agent)
-                page = context.new_page()
+                context = await browser.new_context(user_agent=user_agent)
+                page = await context.new_page()
 
                 # Apply stealth if available
-                if stealth_sync:
-                    stealth_sync(page)
+                if stealth:
+                    await stealth(page)
 
                 # Small random delay to simulate human lead-in
-                time.sleep(random.uniform(1.5, 3.5))
+                await asyncio.sleep(random.uniform(1.5, 3.5))
 
-                page.goto(url, wait_until="networkidle", timeout=30000)
+                await page.goto(url, wait_until="networkidle", timeout=30000)
 
-                # Handle cookie consent if it appears (common in NL)
                 try:
-                    # Generic selector for 'Accept All' buttons in Dutch
                     consent_button = page.locator('button:has-text("Alles accepteren"), button:has-text("Akkoord")').first
-                    if consent_button.is_visible(timeout=3000):
-                        time.sleep(random.uniform(0.5, 1.2))
-                        consent_button.click()
+                    if await consent_button.is_visible(timeout=3000):
+                        await asyncio.sleep(random.uniform(0.5, 1.2))
+                        await consent_button.click()
                 except:
                     pass
 
-                # Extract top organic shop links from Google results using more robust selectors
-                links = page.evaluate("""() => {
-                    // Look for organic result links (usually inside h3 or specifically marked divs)
+                links = await page.evaluate("""() => {
                     const organicSelectors = ['#search a', 'div.g a', 'a[data-ved]'];
                     let anchors = [];
                     organicSelectors.forEach(sel => {
@@ -75,9 +74,9 @@ class MarketplaceScraper:
                 for link in links:
                     logger.scrape(f"Scraping product page: {link}")
                     try:
-                        page.goto(link, wait_until="domcontentloaded", timeout=15000)
+                        await page.goto(link, wait_until="domcontentloaded", timeout=15000)
                         # Extract raw text content for the LLM to parse
-                        text = page.evaluate("() => document.body.innerText")
+                        text = await page.evaluate("() => document.body.innerText")
                         results.append({
                             "site": link.split('/')[2],
                             "url": link,
@@ -86,17 +85,17 @@ class MarketplaceScraper:
                     except Exception as e:
                         logger.error(f"Failed to scrape {link}: {e}")
 
-                browser.close()
+                await browser.close()
         except Exception as e:
             logger.error(f"Google Scraper encountered an error: {e}")
 
         return results
 
-    def get_links(self, artist, album, headless=True):
-        """Orchestrates Google search and uses LLM to extract JSON structured store data"""
-        raw_data = self.search_google(artist, album, headless=headless)
+    async def get_links(self, artist, album, headless=True):
+        """Orchestrates Google search and uses LLM to extract JSON structured store data (Async)"""
+        raw_data = await self.search_google(artist, album, headless=headless)
         if not raw_data:
             return []
-        # print(raw_data)
+
         logger.ai("Sending raw marketplace data to LLM for parsing...")
-        return self.advisor.parse_scraper_results(artist, album, raw_data)
+        return await self.advisor.parse_scraper_results(artist, album, raw_data)
