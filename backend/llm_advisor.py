@@ -38,11 +38,6 @@ class LLMAdvisor:
         """
         Takes raw similarity math and CLAP semantic tags to generate a human breakdown.
         """
-
-        # logger.ai(album_meta)
-        # logger.ai(track_scores)
-        # logger.ai(journey_data)
-        # logger.ai(user_profile)
         prompt = f"""
         You are a Vinyl Purchase Advisor. Your goal is to identify "Skip-Free" albums.
 
@@ -84,7 +79,6 @@ class LLMAdvisor:
             )
             message = response.choices[0].message
             if hasattr(message, 'parsed') and message.parsed:
-                logger.result('is parsed')
                 return message.parsed.model_dump()
 
             # Fallback for unexpected formats
@@ -148,8 +142,6 @@ class LLMAdvisor:
                 "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
                 "messages": messages
             }
-
-            print(messages[len(messages) - 1])
 
             if tools_schema:
                 call_kwargs["tools"] = tools_schema

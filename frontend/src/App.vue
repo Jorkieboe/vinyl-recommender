@@ -14,6 +14,7 @@ const currentTab = ref('dashboard') // 'dashboard' or 'discovery'
 const activeAnalysis = ref(null)
 const analysisResult = ref(null)
 const discoveryResults = ref([])
+const recommendedAlbums = ref([])
 const selectedDiscoveryAlbum = ref(null)
 
 // CLAP Analysis State
@@ -228,6 +229,12 @@ const fetchDiscoveryResults = async () => {
   }
 }
 
+const fetchRecommendedAlbums = async () => {
+  if (window.pywebview && window.pywebview.api) {
+    recommendedAlbums.value = await window.pywebview.api.get_recommended_albums()
+  }
+}
+
 const startFlowDiscovery = async () => {
   if (window.pywebview && window.pywebview.api) {
     await window.pywebview.api.start_flow_discovery(userId.value)
@@ -241,6 +248,7 @@ const startPolling = () => {
     fetchSyncedTracks()
     fetchUserProfile()
     fetchDiscoveryResults()
+    fetchRecommendedAlbums()
   }, 2000)
 }
 
@@ -291,6 +299,13 @@ onUnmounted(() => {
       >
         Flow Discovery
       </button>
+      <button
+        @click="currentTab = 'agent'"
+        :class="currentTab === 'agent' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'"
+        class="px-6 py-2 rounded-xl font-bold transition text-sm"
+      >
+        Agent Search
+      </button>
     </nav>
 
     <main v-if="currentTab === 'dashboard'" class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -325,35 +340,6 @@ onUnmounted(() => {
               <span class="text-gray-500 block text-[10px] uppercase">Tracks</span>
               <span class="text-green-400 text-sm font-bold">{{ trackCount }}</span>
             </div>
-          </div>
-        </section>
-
-        <!-- Agent Testing Lab -->
-        <section class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
-          <h2 class="text-lg font-bold mb-4 flex items-center">
-            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
-            Agent Lab
-          </h2>
-          <p class="text-[10px] text-gray-400 mb-4 uppercase font-bold tracking-wider">Direct workflow interface</p>
-          <div class="mb-4">
-            <textarea
-              v-model="agentInput"
-              rows="3"
-              placeholder="Tell the agent what to do..."
-              class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-xs text-yellow-100 focus:outline-none focus:border-yellow-500 transition resize-none"
-            ></textarea>
-          </div>
-          <button
-            @click="callAgent"
-            :disabled="agentLoading"
-            class="w-full bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white font-bold py-2 rounded-xl transition duration-300 text-sm"
-          >
-            {{ agentLoading ? 'Agent Thinking...' : 'Send to Agent' }}
-          </button>
-
-          <div v-if="agentResponse" class="mt-4 bg-gray-900/50 p-3 rounded-xl border border-gray-700">
-            <span class="text-[9px] uppercase font-bold text-yellow-500 block mb-2">Agent Response</span>
-            <p class="text-xs text-gray-300 leading-relaxed">{{ agentResponse.message }}</p>
           </div>
         </section>
 
@@ -647,12 +633,12 @@ onUnmounted(() => {
         <p>Select a track from the dashboard to run deep-audio tagging or album audits.</p>
       </div>
 
-    </section>
-  </div>
-    </main>
+        </section>
+      </div>
+        </main>
 
-    <main v-else class="w-full max-w-6xl relative">
-      <div class="flex justify-between items-center mb-8">
+        <main v-else-if="currentTab === 'discovery'" class="w-full max-w-6xl relative">
+          <div class="flex justify-between items-center mb-8">
         <div>
           <h2 class="text-2xl font-bold">Sonic Discovery</h2>
           <p class="text-gray-400 text-sm">Albums found in your Flow with >60% compatibility.</p>
@@ -688,53 +674,118 @@ onUnmounted(() => {
       <div v-if="discoveryResults.length === 0" class="text-center py-32 bg-gray-800/50 rounded-3xl border border-dashed border-gray-700">
         <p class="text-gray-500">No high-match albums found yet. Click "Discover New Flow" to start scanning.</p>
       </div>
+    </main>
 
-      <!-- Side Panel -->
-      <div
-        v-if="selectedDiscoveryAlbum"
-        class="fixed inset-y-0 right-0 w-[400px] bg-gray-900 border-l border-gray-700 shadow-2xl z-50 transform transition-transform p-8 overflow-y-auto"
-      >
-        <button @click="selectedDiscoveryAlbum = null" class="absolute top-6 left-6 text-gray-500 hover:text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+    <main v-else-if="currentTab === 'agent'" class="w-full max-w-6xl relative">
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold">Agent Search</h2>
+        <p class="text-gray-400 text-sm">Tell the AI what you're looking for and let it explore your taste profile.</p>
+      </div>
 
-        <div class="mt-8 space-y-6">
-          <img :src="selectedDiscoveryAlbum.cover_url" class="w-full rounded-2xl shadow-xl" />
+      <div class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 mb-8">
+        <div class="flex space-x-4">
+          <input
+            v-model="agentInput"
+            @keyup.enter="callAgent"
+            placeholder="E.g., I want something energetic but similar to my favorite rock albums..."
+            class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
+          />
+          <button
+            @click="callAgent"
+            :disabled="agentLoading"
+            class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-8 rounded-xl transition shadow-lg shadow-indigo-900/20"
+          >
+            {{ agentLoading ? 'Thinking...' : 'Search' }}
+          </button>
+        </div>
 
-          <div>
-            <h3 class="text-2xl font-bold">{{ selectedDiscoveryAlbum.title }}</h3>
-            <p class="text-indigo-400 font-medium">{{ selectedDiscoveryAlbum.artist }}</p>
-          </div>
+        <div v-if="agentResponse" class="mt-4 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+          <span class="text-[10px] uppercase font-bold text-indigo-400 block mb-2 tracking-wider">Agent Response</span>
+          <p class="text-sm text-gray-300 leading-relaxed whitespace-pre-line" v-if="agentResponse.message?.sonic_breakdown">
+            {{ agentResponse.message.sonic_breakdown }}
+          </p>
+          <p class="text-sm text-gray-300 leading-relaxed whitespace-pre-line" v-else>
+            {{ agentResponse.message }}
+          </p>
+        </div>
+      </div>
 
-          <div class="flex items-center space-x-4">
-            <div class="bg-gray-800 p-4 rounded-2xl flex-1 text-center border border-gray-700">
-              <span class="block text-[10px] uppercase text-gray-500 font-bold mb-1">Match Score</span>
-              <span class="text-3xl font-black">{{ selectedDiscoveryAlbum.confidence_score }}%</span>
+      <div>
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+          Recommended by Agent
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div
+            v-for="album in recommendedAlbums"
+            :key="album.album_id"
+            @click="selectedDiscoveryAlbum = album"
+            class="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden cursor-pointer hover:border-green-500 transition-all group"
+          >
+            <div class="relative">
+              <img :src="album.cover_url" class="w-full aspect-square object-cover" />
+              <div class="absolute top-2 right-2 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg border border-gray-700 text-xs font-black text-green-400">
+                {{ album.confidence_score }}%
+              </div>
+            </div>
+            <div class="p-4">
+              <p class="font-bold text-sm truncate group-hover:text-green-400 transition">{{ album.title }}</p>
+              <p class="text-[10px] text-gray-500 truncate uppercase tracking-tighter">{{ album.artist }}</p>
             </div>
           </div>
+        </div>
 
-          <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
-            <h4 class="text-[10px] uppercase font-bold text-indigo-400 mb-3 tracking-widest">Sonic Breakdown</h4>
-            <p class="text-sm italic leading-relaxed text-gray-300">
-              "{{ selectedDiscoveryAlbum.analysis_json.sonic_breakdown }}"
-            </p>
-          </div>
-
-          <div v-if="selectedDiscoveryAlbum.analysis_json.acquisition_links?.length" class="space-y-3">
-             <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">Purchase Links</h4>
-             <div v-for="link in selectedDiscoveryAlbum.analysis_json.acquisition_links" :key="link.link" class="bg-gray-800 p-3 rounded-xl border border-gray-700 text-xs">
-                <div class="flex justify-between mb-1">
-                  <span class="font-bold text-green-400">{{ link.store }}</span>
-                  <span class="font-mono">{{ link.price }}</span>
-                </div>
-                <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
-             </div>
-          </div>
+        <div v-if="recommendedAlbums.length === 0" class="text-center py-20 bg-gray-800/50 rounded-3xl border border-dashed border-gray-700">
+          <p class="text-gray-500">No agent recommendations yet. Send a query to get started!</p>
         </div>
       </div>
     </main>
+
+    <!-- Side Panel (Global) -->
+    <div
+      v-if="selectedDiscoveryAlbum"
+      class="fixed inset-y-0 right-0 w-[400px] bg-gray-900 border-l border-gray-700 shadow-2xl z-50 transform transition-transform p-8 overflow-y-auto"
+    >
+      <button @click="selectedDiscoveryAlbum = null" class="absolute top-6 left-6 text-gray-500 hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="mt-8 space-y-6">
+        <img :src="selectedDiscoveryAlbum.cover_url" class="w-full rounded-2xl shadow-xl" />
+
+        <div>
+          <h3 class="text-2xl font-bold">{{ selectedDiscoveryAlbum.title }}</h3>
+          <p class="text-indigo-400 font-medium">{{ selectedDiscoveryAlbum.artist }}</p>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <div class="bg-gray-800 p-4 rounded-2xl flex-1 text-center border border-gray-700">
+            <span class="block text-[10px] uppercase text-gray-500 font-bold mb-1">Match Score</span>
+            <span class="text-3xl font-black">{{ selectedDiscoveryAlbum.confidence_score }}%</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+          <h4 class="text-[10px] uppercase font-bold text-indigo-400 mb-3 tracking-widest">Sonic Breakdown</h4>
+          <p class="text-sm italic leading-relaxed text-gray-300">
+            "{{ selectedDiscoveryAlbum.analysis_json?.sonic_breakdown || 'No detailed analysis provided.' }}"
+          </p>
+        </div>
+
+        <div v-if="selectedDiscoveryAlbum.analysis_json?.acquisition_links?.length" class="space-y-3">
+           <h4 class="text-[10px] uppercase font-bold text-green-400 tracking-widest">Purchase Links</h4>
+           <div v-for="link in selectedDiscoveryAlbum.analysis_json.acquisition_links" :key="link.link" class="bg-gray-800 p-3 rounded-xl border border-gray-700 text-xs">
+              <div class="flex justify-between mb-1">
+                <span class="font-bold text-green-400">{{ link.store }}</span>
+                <span class="font-mono">{{ link.price }}</span>
+              </div>
+              <a :href="link.link" target="_blank" class="text-indigo-400 hover:underline truncate block">{{ link.link }}</a>
+           </div>
+        </div>
+      </div>
+    </div>
 
     <footer class="mt-12 text-gray-600 text-[10px] uppercase tracking-[0.2em] font-medium">
       Vinyl Recommender Alpha • Deep Analysis Layer Active

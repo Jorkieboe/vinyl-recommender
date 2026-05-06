@@ -147,7 +147,7 @@ class Database:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url
+                SELECT album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url, analysis_text
                 FROM scanned_albums
                 WHERE confidence_score >= ?
                 ORDER BY confidence_score DESC
@@ -157,12 +157,37 @@ class Database:
                 "album_id": r[0],
                 "title": r[1],
                 "artist": r[2],
-                "anchors": r[3],
-                "inner_bridge": r[4],
-                "outer_bridge": r[5],
-                "horizon": r[6],
-                "cover_url": r[7],
-                "analysis_text": r[8],
+                "confidence_score": r[3],
+                "anchors": r[4],
+                "inner_bridge": r[5],
+                "outer_bridge": r[6],
+                "horizon": r[7],
+                "cover_url": r[8],
+                "analysis_json": json.loads(r[9]) if r[9] else {},
+            } for r in rows]
+
+    def get_recommended_albums(self):
+        """Returns albums explicitly recommended by the agent"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT album_id, title, artist, confidence_score, anchors, inner_bridge, outer_bridge, horizon, cover_url, analysis_text
+                FROM scanned_albums
+                WHERE is_recommended = 1
+                ORDER BY timestamp DESC
+            ''')
+            rows = cursor.fetchall()
+            return [{
+                "album_id": r[0],
+                "title": r[1],
+                "artist": r[2],
+                "confidence_score": r[3],
+                "anchors": r[4],
+                "inner_bridge": r[5],
+                "outer_bridge": r[6],
+                "horizon": r[7],
+                "cover_url": r[8],
+                "analysis_json": json.loads(r[9]) if r[9] else {},
             } for r in rows]
 
     def get_all_features(self):

@@ -145,6 +145,10 @@ class Bridge:
         """Returns analyzed albums with a score > 60 for the discovery tab"""
         return self.db.get_high_score_albums(min_score=60)
 
+    def get_recommended_albums(self):
+        """Returns agent-recommended albums"""
+        return self.db.get_recommended_albums()
+
     def start_flow_discovery(self, user_id):
         """Fetches Deezer flow and analyzes albums contained within it"""
         def flow_worker():
@@ -168,16 +172,13 @@ class Bridge:
         threading.Thread(target=flow_worker, daemon=True).start()
         return {"status": "success", "message": "Flow discovery started"}
 
-    def _run_album_numerical_analysis_logic(self, track_id, album_id):
-        """Synchronous version of the analysis worker logic for internal use"""
-        target_id = album_id
-
+    def get_album_info(self, track_id, target_id):
         # If a track ID was provided, resolve the album ID from it first
         if track_id:
             track_meta = self.client.get_track(track_id)
             if not track_meta: return 0
             target_id = track_meta['album']['id']
-            album_info = {
+            return {
                 "title": track_meta['album']['title'],
                 "artist": track_meta['artist']['name'],
                 "cover_url": track_meta['album'].get('cover_medium', '')
@@ -186,11 +187,17 @@ class Bridge:
             # Fetch album metadata directly if no track was provided
             album_meta = self.client.get_album(target_id)
             if not album_meta: return 0
-            album_info = {
+            return {
                 "title": album_meta['title'],
                 "artist": album_meta['artist']['name'],
                 "cover_url": album_meta.get('cover_medium', '')
             }
+
+    def _run_album_numerical_analysis_logic(self, track_id, album_id):
+        """Synchronous version of the analysis worker logic for internal use"""
+        target_id = album_id
+
+        album_info = self.get_album_info(track_id, target_id)
 
         # Perform logic similar to analysis_worker in analyze_album_for_track
         all_prefs = self.db.get_all_features()
@@ -231,6 +238,18 @@ class Bridge:
         final_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
         if n_anchors == 0: final_score = min(final_score, 30)
 
+        is_repetitive = False
+        if len(album_feature_history) > 1:
+            flattened_alb = np.array([self.cluster_engine._flatten(f) for f in album_feature_history])
+            scaled_alb = self.cluster_engine.scaler.transform(flattened_alb)
+            alb_dispersion = np.mean(np.std(scaled_alb, axis=0))
+            if alb_dispersion < 0.05:
+                is_repetitive = True
+
+        # Generate Visualization Map for Debugging
+        if album_feature_history:
+            self.cluster_engine.generate_taste_map(album_feature_history, album_info['title'])
+
         self.db.save_scanned_album(
             target_id,
             album_info['title'],
@@ -244,7 +263,7 @@ class Bridge:
             analysis_text=''
         )
 
-        journey_data = {"anchors": n_anchors, "inner_bridges": n_inner, "outer_bridges": n_outer, "horizon": n_horizon, "calculated_score": final_score}
+        journey_data = {"anchors": n_anchors, "inner_bridges": n_inner, "outer_bridges": n_outer, "horizon": n_horizon, "calculated_score": final_score, "is_repetitive": is_repetitive}
 
         return journey_data
 
@@ -252,30 +271,14 @@ class Bridge:
         """Asynchronous version of the analysis worker logic for internal use (Agent)"""
         target_id = album_id
 
-        # If a track ID was provided, resolve the album ID from it first
-        if track_id:
-            track_meta = self.client.get_track(track_id)
-            if not track_meta: return 0
-            target_id = track_meta['album']['id']
-            album_info = {
-                "title": track_meta['album']['title'],
-                "artist": track_meta['artist']['name'],
-                "cover_url": track_meta['album'].get('cover_medium', '')
-            }
-        else:
-            # Fetch album metadata directly if no track was provided
-            album_meta = self.client.get_album(target_id)
-            if not album_meta: return 0
-            album_info = {
-                "title": album_meta['title'],
-                "artist": album_meta['artist']['name'],
-                "cover_url": album_meta.get('cover_medium', '')
-            }
+        album_info = self.get_album_info(track_id, target_id)
 
         # Perform logic similar to analysis_worker in analyze_album_for_track
         all_prefs = self.db.get_all_features()
         user_profile = self.db.get_global_profile()
         if not all_prefs: return 0
+
+        self.cluster_engine.fit_clusters(all_prefs)
         album_tracks = self.client.get_album_tracks(album_id)
         track_scores = []
 
@@ -284,6 +287,8 @@ class Bridge:
             if not full_t or not full_t.get('preview'): continue
             path = self.client.download_preview(full_t['preview'], full_t['id'])
             if path:
+                feats = self.client.analyze_audio(path)
+
                 clap_res = self.db.get_clap_result(full_t['id'])
                 if not clap_res:
                     from backend.clap_analyzer import ClapAnalyzer
@@ -296,7 +301,16 @@ class Bridge:
                     for layer, labels in clap_res.items():
                         top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
                         semantic_tags[layer] = [l[0] for l in top_labels]
-                track_scores.append({"title": full_t['title'],  "semantic_tags": semantic_tags})
+
+                tier = "Risky"
+                similarity = 0
+                if feats:
+                    similarity = self.cluster_engine.get_best_similarity(feats)
+                    if similarity >= 0.80: tier = "Instant Hit"
+                    elif similarity >= 0.70: tier = "Natural Grower"
+                    elif similarity >= 0.60: tier = "Slow Burner"
+
+                track_scores.append({"title": full_t['title'], "similarity": similarity, "tier": tier, "semantic_tags": semantic_tags})
                 os.remove(path)
 
         if not track_scores: return 0
@@ -308,6 +322,19 @@ class Bridge:
         insight['calculated_confidence_math'] = album_data['confidence_score']
         insight['is_complete'] = False if album_data['confidence_score'] > 60 else True
 
+        self.db.save_scanned_album(
+            album_id,
+            album_info['title'],
+            album_info['artist'],
+            album_data['confidence_score'],
+            album_data['anchors'],
+            album_data['inner_bridge'],
+            album_data['outer_bridge'],
+            album_data['horizon'],
+            album_info['cover_url'],
+            json.dumps(insight)
+        )
+
         if album_data['confidence_score'] > 60:
             # Await scraper directly since we are now in an async method
             acquisition_links = await self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode)
@@ -316,6 +343,20 @@ class Bridge:
 
             # Mark this album as recommended so the agent doesn't loop back to it
             self.db.mark_album_as_recommended(album_id)
+
+            self.db.save_scanned_album(
+                album_id,
+                album_info['title'],
+                album_info['artist'],
+                album_data['confidence_score'],
+                album_data['anchors'],
+                album_data['inner_bridge'],
+                album_data['outer_bridge'],
+                album_data['horizon'],
+                album_info['cover_url'],
+                json.dumps(insight),
+                is_recommended=1
+            )
 
         logger.ai(insight)
         return album_data['confidence_score'], insight
@@ -343,162 +384,13 @@ class Bridge:
         def analysis_worker():
             logger.analysis(f"Analyzing album: {track_meta['album']['title']}")
 
-            # 1. Prepare User Taste Clusters & Global Profile
-            all_prefs = self.db.get_all_features()
-            user_profile = self.db.get_global_profile()
-            if not all_prefs:
-                logger.warning("No user preferences found. Please sync first.")
-                return
+            # 1. Math Analysis
+            journey_data = self._run_album_numerical_analysis_logic(track_id, album_id)
+            if journey_data != 0:
+                # 2. Semantic Analysis & Scraping
+                asyncio.run(self._run_album_semantical_analysis_logic(track_id, album_id))
 
-            self.cluster_engine.fit_clusters(all_prefs)
-
-            # 2. Get Album Tracks and score against nearest cluster
-            album_tracks = self.client.get_album_tracks(album_id)
-            track_scores = []
-            album_feature_history = []
-
-            for t in album_tracks:
-                full_t = self.client.get_track(t['id'])
-                if not full_t or not full_t.get('preview'):
-                    continue
-
-                path = self.client.download_preview(full_t['preview'], full_t['id'])
-                if path:
-                    # A. Librosa Math
-                    feats = self.client.analyze_audio(path)
-
-                    # B. CLAP Semantic Tags
-                    clap_res = self.db.get_clap_result(full_t['id'])
-                    if not clap_res:
-                        from backend.clap_analyzer import ClapAnalyzer
-                        if not hasattr(self, 'clap_analyzer'):
-                            self.clap_analyzer = ClapAnalyzer()
-                        clap_res = self.clap_analyzer.analyze(path)
-                        if clap_res:
-                            self.db.save_clap_result(full_t['id'], clap_res)
-
-                    if feats:
-                        album_feature_history.append(feats)
-                        similarity = self.cluster_engine.get_best_similarity(feats)
-
-                        # Determine Tier Name for LLM (Friendly Labels)
-                        tier = "Risky"
-                        if similarity >= 0.80: tier = "Instant Hit"
-                        elif similarity >= 0.70: tier = "Natural Grower"
-                        elif similarity >= 0.60: tier = "Slow Burner"
-
-                        # Extract top semantic tags for LLM context
-                        semantic_tags = {}
-                        if clap_res:
-                            for layer, labels in clap_res.items():
-                                top_labels = sorted(labels.items(), key=lambda x: x[1], reverse=True)[:2]
-                                semantic_tags[layer] = [l[0] for l in top_labels]
-
-                        track_scores.append({
-                            "title": full_t['title'],
-                            "similarity": similarity,
-                            "tier": tier,
-                            "semantic_tags": semantic_tags
-                        })
-                    os.remove(path)
-
-            # 3. Calculate Sonic Journey & Math-Based Confidence
-            journey_data = {
-                "anchors": 0,        # Instant Comfort (>0.80)
-                "inner_bridges": 0,  # Near-term Growth (0.70 - 0.80)
-                "outer_bridges": 0,  # Challenging Expansion (0.60 - 0.70)
-                "horizon": 0,        # Experimental/Risky (<0.60)
-                "is_repetitive": False,
-                "calculated_score": 0
-            }
-
-            if track_scores:
-                sims = [s['similarity'] for s in track_scores]
-                n_anchors = len([s for s in sims if s >= 0.80])
-                n_inner = len([s for s in sims if 0.70 <= s < 0.80])
-                n_outer = len([s for s in sims if 0.60 <= s < 0.70])
-                n_horizon = len([s for s in sims if s < 0.60])
-
-                journey_data.update({
-                    "anchors": n_anchors,
-                    "inner_bridges": n_inner,
-                    "outer_bridges": n_outer,
-                    "horizon": n_horizon
-                })
-
-                buy_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 1) + (n_horizon * 0)
-                total_possible_votes = (n_anchors * 4) + (n_inner * 2) + (n_outer * 3) + (n_horizon * 3)
-                calculated_score = int((buy_votes / total_possible_votes) * 100) if total_possible_votes > 0 else 0
-
-                if n_anchors == 0:
-                    calculated_score = min(calculated_score, 30)
-
-                journey_data["calculated_score"] = calculated_score
-
-                if len(album_feature_history) > 1:
-                    flattened_alb = np.array([self.cluster_engine._flatten(f) for f in album_feature_history])
-                    scaled_alb = self.cluster_engine.scaler.transform(flattened_alb)
-                    alb_dispersion = np.mean(np.std(scaled_alb, axis=0))
-                    if alb_dispersion < 0.05:
-                        journey_data["is_repetitive"] = True
-
-            # Generate Visualization Map for Debugging
-            if album_feature_history:
-                self.cluster_engine.generate_taste_map(album_feature_history, track_meta['album']['title'])
-
-            # 4. Get LLM Breakdown (Qualitative Analysis only)
-            album_info = {
-                "title": track_meta['album']['title'],
-                "artist": track_meta['artist']['name'],
-                "cover_url": track_meta['album'].get('cover_medium', '')
-            }
-            insight = self.advisor.get_album_insight(album_info, track_scores, journey_data, user_profile)
-
-            # Use the Hard Math score for the final result, not the LLM's version
-            final_score = journey_data['calculated_score']
-            insight['calculated_confidence_math'] = final_score
-
-            # 5. Intermediate Save (Show breakdown to user immediately)
-            # Mark as not complete if we intend to scrape
-            insight['is_complete'] = False if final_score > 60 else True
-
-            self.db.save_scanned_album(
-                album_id,
-                album_info['title'],
-                album_info['artist'],
-                final_score,
-                journey_data['anchors'],
-                journey_data['inner_bridges'],
-                journey_data['outer_bridges'],
-                journey_data['horizon'],
-                album_info['cover_url'],
-                json.dumps(insight)
-            )
-
-            # 6. Marketplace Scraper (Triggered if score > 60)
-            if final_score > 60:
-                logger.scrape(f"Score promising ({final_score}%). Triggering marketplace search...")
-                # Run async scraper inside the analysis thread
-                acquisition_links = asyncio.run(self.scraper.get_links(album_info['artist'], album_info['title'], headless=self.headless_mode))
-
-                # Update insight with links and mark as complete
-                insight['acquisition_links'] = acquisition_links
-                insight['is_complete'] = True
-
-                self.db.save_scanned_album(
-                    album_id,
-                    album_info['title'],
-                    album_info['artist'],
-                    final_score,
-                    journey_data['anchors'],
-                    journey_data['inner_bridges'],
-                    journey_data['outer_bridges'],
-                    journey_data['horizon'],
-                    album_info['cover_url'],
-                    json.dumps(insight)
-                )
-
-            logger.result(f"Analysis complete for {album_info['title']}")
+            logger.result(f"Analysis complete for {track_meta['album']['title']}")
 
         threading.Thread(target=analysis_worker, daemon=True).start()
         return {"status": "pending", "message": "Album analysis started", "album_id": album_id}

@@ -54,7 +54,6 @@ class Agentloop:
 
             response_message = await self.llm.agent_call(self.messageHistory, tools_schema=tools_schema)
 
-            logger.result(response_message)
             if not response_message:
                 return {"message": "The AI failed to generate a response."}
 
