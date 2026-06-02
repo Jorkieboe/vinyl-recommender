@@ -107,7 +107,7 @@ goto :Usage
 
         echo.
         echo Virtual environment not found. Creating with uv...
-        uv venv %VENV_DIR%
+        uv venv %VENV_DIR% --python 3.11
         if !errorlevel! neq 0 (
             echo ERROR: Failed to create venv with uv.
             exit /b 1
