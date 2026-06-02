@@ -70,7 +70,7 @@ class LLMAdvisor:
 
         try:
             response = self.client.chat.completions.parse(
-                model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
                 messages=[
                     {"role": "system", "content": "You are a professional music critic. You provide the verbal explanation for a pre-calculated mathematical score."},
                     {"role": "user", "content": prompt}
@@ -114,7 +114,7 @@ class LLMAdvisor:
 
         try:
             response = await self.async_client.chat.completions.parse(
-                model=os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
 
                 messages=[
                     {"role": "system", "content": "You are a data extraction specialist focused on e-commerce."},
@@ -139,7 +139,7 @@ class LLMAdvisor:
         try:
             # Prepare call arguments
             call_kwargs = {
-                "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                "model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
                 "messages": messages
             }
 
@@ -177,7 +177,7 @@ class LLMAdvisor:
             combined_messages = [system_prompt] + messages
             # Prepare call arguments
             call_kwargs = {
-                "model": os.getenv("OPENAI_MODEL", "gemma-4-26b-a4b-it"),
+                "model": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
                 "messages": combined_messages,
                 "response_format": resultOutput
             }

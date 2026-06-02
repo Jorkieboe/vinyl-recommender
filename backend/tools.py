@@ -145,7 +145,7 @@ class MusicAgentTools:
             return f"Could not find any new/unscanned albums for artist '{artist}' on Deezer."
 
         album_id, album_title = result
-        
+
         logger.ai(f"Analyzing album: {album_title}")
         journey_data = self.bridge._run_album_numerical_analysis_logic(None, album_id)
 
@@ -156,6 +156,45 @@ class MusicAgentTools:
         logger.ai(f"Final compatibility score for {album_title} by {artist}: {journey_data['calculated_score']}%")
         return json.dumps(journey_data)
 
+    @tool
+    def get_artist_knowledge(self, artist: str):
+        """Checks the database to see what is already known about the given artist.
+        Returns details of synced tracks in the library, previously scanned albums, and their average scores.
+        """
+        logger.ai(f"Checking system knowledge for artist: '{artist}'")
+        db = self.bridge.db
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) FROM user_preferences WHERE LOWER(artist) = LOWER(?)",
+                (artist,)
+            )
+            library_count = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT title, confidence_score, is_recommended FROM scanned_albums WHERE LOWER(artist) = LOWER(?)",
+                (artist,)
+            )
+            scanned_rows = cursor.fetchall()
+        scanned_albums = []
+        scores = []
+        for row in scanned_rows:
+            title, score, is_rec = row
+            scanned_albums.append({
+                "title": title,
+                "confidence_score": score,
+                "is_recommended": bool(is_rec)
+            })
+            scores.append(score)
+        avg_score = sum(scores) / len(scores) if scores else None
+        result = {
+            "artist": artist,
+            "in_library": library_count > 0,
+            "library_track_count": library_count,
+            "previously_scanned": scanned_albums,
+            "average_confidence_score": avg_score
+        }
+        logger.ai(f"Artist knowledge for '{artist}': {result}")
+        return json.dumps(result)
 
     @tool
     def get_similar_artists(self, artist: str):
