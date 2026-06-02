@@ -138,8 +138,8 @@ class Bridge:
         return {"count": count}
 
     def get_synced_tracks(self):
-        """Returns unique albums (with at least 3 tracks) found via loved tracks"""
-        return self.db.get_all_synced_albums(min_tracks=3)
+        """Returns unique albums (with at least 4 tracks) found via loved tracks"""
+        return self.db.get_all_synced_albums(min_tracks=4)
 
     def get_discovery_results(self):
         """Returns analyzed albums with a score > 60 for the discovery tab"""
@@ -165,7 +165,7 @@ class Bridge:
 
             for alb_id, sample_track_id in album_map.items():
                 unique_count = self._count_unique_tracks(alb_id)
-                if unique_count >= 3:
+                if unique_count >= 4:
                     logger.analysis(f"Flow Discovery: Analyzing album {alb_id} (Size: {unique_count})")
                     self._run_album_analysis_logic(sample_track_id)
 
@@ -196,6 +196,11 @@ class Bridge:
     def _run_album_numerical_analysis_logic(self, track_id, album_id):
         """Synchronous version of the analysis worker logic for internal use"""
         target_id = album_id
+
+        unique_count = self._count_unique_tracks(target_id)
+        if unique_count < 4:
+            logger.analysis(f"Album validation failed: {target_id} has only {unique_count} unique tracks (min 4 required).")
+            return 0
 
         album_info = self.get_album_info(track_id, target_id)
 
@@ -377,6 +382,10 @@ class Bridge:
             return {"status": "error", "message": "Track not found"}
 
         album_id = track_meta['album']['id']
+        unique_count = self._count_unique_tracks(album_id)
+        if unique_count < 4:
+            return {"status": "error", "message": f"Album has only {unique_count} unique tracks. Minimum of 4 unique tracks required for full vinyl audit."}
+
         cached = self.db.get_scanned_album(album_id)
         if cached:
             return {"status": "success", "data": cached}

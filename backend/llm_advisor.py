@@ -16,12 +16,14 @@ class resultOutput(BaseModel):
     album_id: float
     reasoning: str
 
-class vinylOutput(BaseModel):
+class VinylLink(BaseModel):
     store: str
     product: str
     link: str
     price: str
 
+class VinylOutput(BaseModel):
+    links: list[VinylLink]
 
 class LLMAdvisor:
     def __init__(self):
@@ -115,21 +117,19 @@ class LLMAdvisor:
         try:
             response = await self.async_client.chat.completions.parse(
                 model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
-
                 messages=[
                     {"role": "system", "content": "You are a data extraction specialist focused on e-commerce."},
                     {"role": "user", "content": prompt}
                 ],
-                response_format=vinylOutput
+                response_format=VinylOutput
             )
             message = response.choices[0].message
 
-            date = None
-
             if hasattr(message, 'parsed') and message.parsed:
                 data = message.parsed.model_dump()
-            
-            return data.get('links', [])
+                return data.get('links', [])
+
+            return []
         except Exception as e:
             logger.error(f"LLM Scraper Parsing Error: {e}")
             return []

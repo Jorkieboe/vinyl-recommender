@@ -128,7 +128,7 @@ class Database:
             cursor.execute('SELECT COUNT(*) FROM user_preferences')
             return cursor.fetchone()[0]
 
-    def get_all_synced_albums(self, min_tracks=3):
+    def get_all_synced_albums(self, min_tracks=4):
         """Returns unique albums that meet the track count threshold"""
         with self.get_connection() as conn:
             cursor = conn.cursor()

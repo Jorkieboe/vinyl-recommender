@@ -149,6 +149,9 @@ class MusicAgentTools:
         logger.ai(f"Analyzing album: {album_title}")
         journey_data = self.bridge._run_album_numerical_analysis_logic(None, album_id)
 
+        if journey_data == 0:
+            return f"Album '{album_title}' failed unique track validation (at least 4 unique tracks required)."
+
         journey_data["album_title"] = album_title
         journey_data["album_id"] = album_id
         journey_data["artist"] = artist
